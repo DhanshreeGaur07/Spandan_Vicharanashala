@@ -31,13 +31,11 @@ router.get('/', authenticate, async (req, res) => {
     const skip = (pageNum - 1) * limitNum
 
     if (req.user.role === 'teacher') {
-      const [rooms, total] = await Promise.all([
-        getRoomsByTeacher(req.user._id, { skip, limit: limitNum }),
-        req.user.model || Promise.resolve(null)
-      ])
-      // Count total rooms for teacher
       const Room = (await import('../models/Room.js')).default
-      const totalCount = await Room.countDocuments({ teacher: req.user._id })
+      const [rooms, totalCount] = await Promise.all([
+        getRoomsByTeacher(req.user._id, { skip, limit: limitNum }),
+        Room.countDocuments({ teacher: req.user._id })
+      ])
       res.json({ 
         rooms,
         pagination: {
@@ -55,25 +53,24 @@ router.get('/', authenticate, async (req, res) => {
   }
 })
 
-// Get room by ID
-router.get('/:id', authenticate, async (req, res) => {
+// Get rooms student has attended (for room history)
+// NOTE: Must be defined BEFORE /:id to prevent Express matching "student" as an :id param
+router.get('/student/room-history', authenticate, authorize('student'), async (req, res) => {
   try {
-    const room = await getRoomById(req.params.id)
-    const RoomMember = (await import('../models/RoomMember.js')).default
-    
-    // Check if user is the room teacher (owner) or a student member
-    const isOwner = room.teacher._id.toString() === req.user._id.toString()
-    const isStudentMember = await RoomMember.findOne({ roomId: req.params.id, studentId: req.user._id })
-    
-    // Only the room owner OR room members can access
-    if (!isOwner && !isStudentMember) {
-      return res.status(403).json({ error: 'Access denied' })
-    }
-    
-    res.json({ room })
+    const rooms = await getRoomsByStudent(req.user._id)
+    res.json({ rooms })
   } catch (error) {
-    const status = error.message === 'Room not found' ? 404 : 500
-    res.status(status).json({ error: error.message })
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get active rooms for student (rooms that can be rejoined)
+router.get('/student/active', authenticate, authorize('student'), async (req, res) => {
+  try {
+    const rooms = await getActiveRoomsByStudent(req.user._id)
+    res.json({ rooms })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
   }
 })
 
@@ -102,23 +99,26 @@ router.get('/join/:code', authenticate, authorize('student'), async (req, res) =
   }
 })
 
-// Get rooms student has attended (for room history)
-router.get('/student/room-history', authenticate, authorize('student'), async (req, res) => {
+// Get room by ID
+// NOTE: This wildcard route must come AFTER all literal /student/* and /join/* routes
+router.get('/:id', authenticate, async (req, res) => {
   try {
-    const rooms = await getRoomsByStudent(req.user._id)
-    res.json({ rooms })
+    const room = await getRoomById(req.params.id)
+    const RoomMember = (await import('../models/RoomMember.js')).default
+    
+    // Check if user is the room teacher (owner) or a student member
+    const isOwner = room.teacher._id.toString() === req.user._id.toString()
+    const isStudentMember = await RoomMember.findOne({ roomId: req.params.id, studentId: req.user._id })
+    
+    // Only the room owner OR room members can access
+    if (!isOwner && !isStudentMember) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+    
+    res.json({ room })
   } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Get active rooms for student (rooms that can be rejoined)
-router.get('/student/active', authenticate, authorize('student'), async (req, res) => {
-  try {
-    const rooms = await getActiveRoomsByStudent(req.user._id)
-    res.json({ rooms })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
+    const status = error.message === 'Room not found' ? 404 : 500
+    res.status(status).json({ error: error.message })
   }
 })
 
@@ -149,6 +149,11 @@ router.put('/:id', authenticate, authorize('teacher'), async (req, res) => {
       // shared cache instead of each triggering full-room aggregations (the end-session stampede).
       // Fire-and-forget + no-op when Redis is off; never blocks or fails the room-end response.
       rebuildSnapshot(room._id).catch((e) => console.error('[rooms] snapshot pre-warm failed:', e.message))
+      
+      // Surface: generate post-session report (fire-and-forget, same pattern as rebuildSnapshot)
+      import('../services/surfaceService.js')
+        .then(({ generateSurface }) => generateSurface(room._id))
+        .catch((e) => console.error('[surface] generation failed:', e.message))
     }
     
     res.json({ message: 'Room updated successfully', room: updatedRoom })

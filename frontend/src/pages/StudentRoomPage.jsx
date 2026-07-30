@@ -7,6 +7,10 @@ import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
 import ProfileDropdown from '../components/ProfileDropdown'
 import Leaderboard from '../components/Leaderboard'
+import PulseHoldButton from '../components/PulseHoldButton'
+import DriftSheet from '../components/DriftSheet'
+import ImLostModal from '../components/ImLostModal'
+import useSocketStore from '../stores/socketStore'
 import { API_URL } from '../config.js'
 
 // Spread the ~N students' navigation to the results page over this window (ms). When a big room
@@ -21,6 +25,7 @@ function StudentRoomPage() {
   const { user, token, logout } = useAuthStore()
   const { joinRoomByCode, setAuthToken } = useRoomStore()
   const { joinRoom, activePoll, remainingTime, hasAnswered, submitAnswer, recordTabSwitch } = useLiveRoom(roomCode, token, 'student')
+  const { socket, emitPulseHold, driftPrompt, submitDriftResponse } = useSocketStore()
 
   const [room, setRoom] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -29,10 +34,13 @@ function StudentRoomPage() {
   const [submitted, setSubmitted] = useState(false)
   const [hasAnsweredPoll, setHasAnsweredPoll] = useState(false) // Track if student has answered at least one poll
   const [myRank, setMyRank] = useState(null) // this student's latest rank, returned by the submit POST
+  const [prevPollId, setPrevPollId] = useState(null)
+  const [currentQuestion, setCurrentQuestion] = useState(null)
   const [timeLeft, setTimeLeft] = useState(0)
   const [results, setResults] = useState(null)
   // Past responses loaded from MongoDB - no sessionStorage needed
   const [pastResponses, setPastResponses] = useState([])
+  const [showImLostModal, setShowImLostModal] = useState(false)
   const [sessionEnded, setSessionEnded] = useState(false) // room ended → show interstitial while we stagger navigation
   const timerIntervalRef = useRef(null)
   const resultsNavTimerRef = useRef(null)
@@ -95,13 +103,28 @@ function StudentRoomPage() {
       }
     }
 
+    const handleQuestionStarted = (question) => {
+      if (question) {
+        handleNewQuestion(question)
+      }
+    }
+
+    const handleQuestionEnded = () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
+      }
+      setCurrentQuestion(null)
+      if (room?._id && user?._id) {
+        fetchPastResponses(room._id, user._id)
+      }
+    }
+
     socket.on('question:started', handleQuestionStarted)
     socket.on('question:ended', handleQuestionEnded)
     socket.on('new_question', handleNewQuestion)
     socket.on('connect', handleReconnect)
     socket.on('room:ended', () => {
-      // Show the interstitial immediately, but stagger the actual navigation across a jitter window
-      // so all students don't hit the results endpoints in the same instant.
       setSessionEnded(true)
       const delay = Math.random() * RESULTS_NAV_JITTER_MS
       resultsNavTimerRef.current = setTimeout(() => {
@@ -124,7 +147,7 @@ function StudentRoomPage() {
     try {
       const roomData = await joinRoomByCode(roomCode)
       setRoom(roomData)
-      await joinRoom(roomCode)
+      await joinRoom(roomCode, user?._id)
       if (roomData?._id && user?._id) {
         fetchPastResponses(roomData._id, user._id)
       }
@@ -168,11 +191,9 @@ function StudentRoomPage() {
   const handleSubmitAnswer = async () => {
     if (selectedOptions.length === 0 || submitted || !activePoll) return
 
-    const questionId = currentQuestion._id || currentQuestion.question?._id
-    const tta = currentQuestion.timeToAnswer || 30
-    // Freeze responseTime at CLICK time. Scoring is based on this value, NOT on when the request
-    // is actually sent, so the send-jitter below can never change a student's points.
-    const responseTime = tta - timeLeft
+    const questionId = currentQuestion?._id || currentQuestion?.question?._id || activePoll?.questionId
+    const tta = currentQuestion?.timeToAnswer || (activePoll?.duration ? Math.round(activePoll.duration / 1000) : 30)
+    const responseTime = Math.max(1, tta - (timeLeft || 0))
     const roomId = room?._id
     const studentId = user?._id
 
@@ -760,6 +781,77 @@ function StudentRoomPage() {
           )}
         </div>
       </div>
+
+      {room?.isActive !== false && (
+        <div style={{
+          position: 'fixed',
+          bottom: 32,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 20,
+          zIndex: 100,
+          background: 'var(--bg-card, #ffffff)',
+          padding: '12px 24px',
+          borderRadius: '30px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+          border: '1px solid var(--border-color, #e2e8f0)'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <PulseHoldButton onHoldChange={(holding) => emitPulseHold(holding)} />
+            <span style={{ 
+              color: 'var(--text-secondary)', 
+              fontSize: 12, 
+              fontWeight: '500'
+            }}>
+              Hold while understanding
+            </span>
+          </div>
+
+          <div style={{ height: '40px', width: '1px', background: 'var(--border-color, #e2e8f0)' }} />
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <button
+              onClick={() => setShowImLostModal(true)}
+              style={{
+                padding: '12px 20px',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '20px',
+                fontSize: '14px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              🚨 I'm Lost
+            </button>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: '500' }}>
+              Test attention & notify teacher
+            </span>
+          </div>
+        </div>
+      )}
+
+      {showImLostModal && (
+        <ImLostModal
+          roomId={room?._id}
+          token={token}
+          onClose={() => setShowImLostModal(false)}
+        />
+      )}
+
+      <DriftSheet
+        prompt={driftPrompt}
+        roomId={room?._id}
+        onRespond={submitDriftResponse}
+      />
     </div>
   )
 }

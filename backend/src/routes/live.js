@@ -11,20 +11,23 @@ const router = express.Router()
 
 router.use(authenticate)
 
-// POST /api/live/:roomId/join
-// Student (or teacher) joins the live room
 router.post('/:roomId/join', async (req, res) => {
   const { roomId } = req.params
   const userId = req.user._id.toString()
   const role = req.user.role
-  
-  // Find room Code
-  const room = await Room.findById(roomId)
+
+  let room
+  if (mongoose.Types.ObjectId.isValid(roomId)) {
+    room = await Room.findById(roomId)
+  }
+  if (!room) {
+    room = await Room.findOne({ code: String(roomId).toUpperCase() })
+  }
   if (!room) return res.status(404).json({ error: 'Room not found' })
-  
+
   const roomCode = room.code
   const roomState = getRoomState(roomCode)
-  
+
   if (role === 'student') {
     roomState.students.set(userId, {
       status: 'connected',
@@ -47,24 +50,24 @@ router.get('/:roomCode/sync', async (req, res) => {
   const role = req.user.role
 
   const roomState = getRoomState(roomCode)
-  
+
   if (role === 'student' && roomState.students.has(userId)) {
     const studentState = roomState.students.get(userId)
     const now = Date.now()
-    
+
     // Accumulate total time in room based on interval between syncs (capped at 5s to avoid offline jumps)
     const timeSinceLastSeen = now - studentState.lastSeen
     if (timeSinceLastSeen > 0 && timeSinceLastSeen < 5000) {
       studentState.totalTimeInRoomMs = (studentState.totalTimeInRoomMs || 0) + timeSinceLastSeen
     }
-    
+
     studentState.lastSeen = now
     studentState.status = 'connected'
   }
 
   const pollData = getActivePoll(roomCode)
-  
-  // Optionally, if Teacher, return the number of connected students or live answers
+
+  // If Teacher, return the number of connected students or live answers
   let teacherData = null
   if (role === 'teacher') {
     let connectedStudents = 0
@@ -85,26 +88,57 @@ router.get('/:roomCode/sync', async (req, res) => {
 // POST /api/live/:roomCode/question
 // Teacher pushes a question
 router.post('/:roomCode/question', async (req, res) => {
-  const { roomCode } = req.params
+  const { roomCode: paramCode } = req.params
   const { questionId, text, type, options, category, duration } = req.body
-  
+
   if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Unauthorized' })
-  
-  const roomState = getRoomState(roomCode)
-  
+
+  let canonicalCode = paramCode
+  if (mongoose.Types.ObjectId.isValid(paramCode)) {
+    const room = await Room.findById(paramCode).select('code').lean()
+    if (room) canonicalCode = room.code
+  }
+
+  const roomState = getRoomState(canonicalCode)
+
   // Reset student answers for new poll
   roomState.students.forEach(student => {
     student.hasAnswered = false
   })
-  
+
+  const pollDurationMs = duration || 30000
   const newPoll = {
-    questionId, text, type, options, category, duration,
+    questionId,
+    text,
+    type,
+    options,
+    category,
+    duration: pollDurationMs,
     serverStartTime: Date.now()
   }
-  
+
   roomState.activePoll = newPoll
-  
-  res.json({ success: true })
+
+  // Emit Socket.IO events to all connected clients in the room
+  const io = req.app.get('io')
+  if (io && canonicalCode) {
+    const questionPayload = {
+      _id: questionId,
+      questionId,
+      question: text,
+      text,
+      type: type || 'MCQ',
+      options: options || [],
+      timeToAnswer: Math.round(pollDurationMs / 1000),
+      duration: pollDurationMs
+    }
+
+    io.to(canonicalCode).emit('new_question', questionPayload)
+    io.to(canonicalCode).emit('question:started', questionPayload)
+    console.log(`[live] Teacher launched question "${text?.slice(0, 40)}" for room ${canonicalCode}`)
+  }
+
+  res.json({ success: true, roomCode: canonicalCode, activePoll: newPoll })
 })
 
 // POST /api/live/:roomCode/answer
@@ -113,19 +147,19 @@ router.post('/:roomCode/answer', async (req, res) => {
   const { roomCode } = req.params
   const { questionId, answer, hasTabSwitched } = req.body
   const userId = req.user._id.toString()
-  
+
   if (req.user.role !== 'student') return res.status(403).json({ error: 'Unauthorized' })
-  
+
   const roomState = getRoomState(roomCode)
   if (!roomState || !roomState.activePoll || roomState.activePoll.questionId !== questionId) {
     return res.status(400).json({ error: 'Poll not active or mismatch' })
   }
-  
+
   const remainingTimeMs = roomState.activePoll.duration - (Date.now() - roomState.activePoll.serverStartTime)
   if (remainingTimeMs <= 0) {
     return res.status(400).json({ error: 'Time is up. Answer not accepted.' })
   }
-  
+
   const studentState = roomState.students.get(userId)
   if (studentState) {
     if (studentState.hasAnswered) {
@@ -141,17 +175,19 @@ router.post('/:roomCode/answer', async (req, res) => {
   // Look up Room ID
   const room = await Room.findOne({ code: roomCode })
   const roomId = room ? room._id : null
-  
+
   const questionDoc = await Question.findById(questionId).catch(() => null)
   const allottedTimeMs = roomState.activePoll.duration
   const basePoints = questionDoc?.points || 1000
-  
-  const isCorrect = questionDoc ? (questionDoc.correctAnswer === answer) : false
+
+  const isCorrect = questionDoc
+    ? (typeof answer === 'number' && questionDoc.options?.[answer]?.isCorrect === true)
+    : false
   let score = 0
   if (isCorrect) {
     score = calculateTTAScore(remainingTimeMs, allottedTimeMs, basePoints, 0)
   }
-  
+
   const responseTime = roomState.activePoll.duration - remainingTimeMs
 
   try {
@@ -179,17 +215,17 @@ router.post('/:roomCode/answer', async (req, res) => {
 router.post('/:roomCode/tab-switch', async (req, res) => {
   const { roomCode } = req.params
   const userId = req.user._id.toString()
-  
+
   if (req.user.role !== 'student') return res.status(403).json({ error: 'Unauthorized' })
-  
+
   const roomState = getRoomState(roomCode)
   const studentState = roomState.students.get(userId)
-  
+
   if (studentState) {
     studentState.hasTabSwitched = true
     studentState.tabSwitchCount = (studentState.tabSwitchCount || 0) + 1
   }
-  
+
   res.json({ success: true })
 })
 
@@ -198,12 +234,12 @@ router.post('/:roomCode/tab-switch', async (req, res) => {
 router.post('/:roomCode/leave', async (req, res) => {
   const { roomCode } = req.params
   const userId = req.user._id.toString()
-  
+
   const roomState = getRoomState(roomCode)
   if (roomState.students.has(userId)) {
     roomState.students.delete(userId)
   }
-  
+
   // Update RoomMember
   const room = await Room.findOne({ code: roomCode })
   if (room) {
@@ -213,7 +249,7 @@ router.post('/:roomCode/leave', async (req, res) => {
       { $set: { leftAt: new Date() } }
     )
   }
-  
+
   res.json({ success: true })
 })
 

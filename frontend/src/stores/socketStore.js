@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { io } from 'socket.io-client'
-import { SOCKET_URL } from '../config.js'
+import { SOCKET_URL, API_URL } from '../config.js'
 
 export const useSocketStore = create((set, get) => ({
   socket: null,
@@ -12,16 +12,30 @@ export const useSocketStore = create((set, get) => ({
   // on an explicit leaveRoom()/disconnect().
   joinedRoom: null,
 
+  pulseValue: 0,
+  pulseHolding: 0,
+  pulseTotal: 0,
+  isHolding: false,
+
+  driftPrompt: null,
+  driftSummary: null,
+
   connect: (token) => {
     const { socket: existingSocket } = get()
-    if (existingSocket?.connected) {
-      console.log('Socket already connected, skipping')
+    // Guard against double-connect: also block if a socket exists but hasn't finished
+    // the handshake yet (connected === false while in "connecting" state). Without this,
+    // React StrictMode's double-effect invocation creates two simultaneous sockets.
+    if (existingSocket) {
+      if (existingSocket.connected) {
+        console.log('Socket already connected, skipping')
+      } else {
+        console.log('Socket already exists (connecting), skipping')
+      }
       return
     }
 
     const socket = io(SOCKET_URL, {
       auth: { token },
-      path: '/spandan/socket.io',
       transports: ['websocket', 'polling']
     })
 
@@ -86,6 +100,26 @@ export const useSocketStore = create((set, get) => ({
       console.log('New question received:', data)
     })
 
+    socket.on('room:pulse', (data) => {
+      set({
+        pulseValue: data.value,
+        pulseHolding: data.holding,
+        pulseTotal: data.total,
+      })
+    })
+
+    socket.on('drift:prompt', (data) => {
+      set({ driftPrompt: data })
+      const delay = Math.max(0, data.expiresAt - Date.now())
+      setTimeout(() => {
+        set((s) => s.driftPrompt?.segmentIndex === data.segmentIndex ? { driftPrompt: null } : {})
+      }, delay)
+    })
+
+    socket.on('drift:updated', (data) => {
+      set({ driftSummary: data })
+    })
+
     set({ socket })
   },
 
@@ -135,6 +169,30 @@ export const useSocketStore = create((set, get) => ({
     if (socket) {
       socket.emit('question:end', data)
     }
+  },
+
+  emitPulseHold: (holding) => {
+    const { socket } = get()
+    if (socket) {
+      socket.emit('pulse:hold', { holding })
+    }
+  },
+  
+  setHolding: (val) => set({ isHolding: val }),
+
+  submitDriftResponse: async (roomId, segmentIndex, selectedOption, dismissed) => {
+    try {
+      const authData = JSON.parse(localStorage.getItem('auth-storage') || '{}')
+      const token = authData?.state?.token
+      await fetch(`${API_URL}/drift/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ roomId, segmentIndex, selectedOption, dismissed })
+      })
+    } catch (e) {
+      console.error('Failed to submit drift response:', e)
+    }
+    set({ driftPrompt: null })
   }
 }))
 

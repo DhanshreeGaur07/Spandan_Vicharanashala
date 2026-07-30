@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { API_URL } from '../config'
+import useSocketStore from '../stores/socketStore'
 
 export function useLiveRoom(roomId, token, role) {
-  const [roomCode, setRoomCode] = useState(null)
+  const { connect } = useSocketStore()
+  const [roomCode, setRoomCode] = useState(roomId || null)
   const [activePoll, setActivePoll] = useState(null)
   const [remainingTime, setRemainingTime] = useState(null)
   const [hasAnswered, setHasAnswered] = useState(false)
@@ -11,10 +13,17 @@ export function useLiveRoom(roomId, token, role) {
   const pollIntervalRef = useRef(null)
   const timerIntervalRef = useRef(null)
 
-  // Join Room
-  const joinRoom = async (code) => {
+  useEffect(() => {
+    if (token) {
+      connect(token)
+    }
+  }, [token])
+
+  // Join Room (HTTP + WebSocket)
+  const joinRoom = async (code, userId) => {
+    const targetCode = code || roomId
     try {
-      const res = await fetch(`${API_URL}/live/${code || roomId}/join`, {
+      const res = await fetch(`${API_URL}/live/${targetCode}/join`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -22,7 +31,14 @@ export function useLiveRoom(roomId, token, role) {
       })
       if (res.ok) {
         const data = await res.json()
-        setRoomCode(data.roomCode)
+        const resolvedCode = data.roomCode || targetCode
+        setRoomCode(resolvedCode)
+
+        // Join Socket.IO channel so real-time questions and events are received
+        const socketStore = useSocketStore.getState()
+        if (socketStore?.joinRoom) {
+          socketStore.joinRoom(resolvedCode, userId)
+        }
       }
     } catch (err) {
       console.error('Failed to join live room:', err)

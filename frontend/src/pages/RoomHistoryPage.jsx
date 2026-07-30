@@ -23,8 +23,9 @@ function RoomHistoryPage() {
     }
   }, [token, user?.role])
 
-  // Filter ended rooms for teacher view
-  const endedRooms = rooms?.filter(r => r.endedAt) || []
+  // For teachers: filter ended rooms. For students: display all attended rooms
+  const isStudent = user?.role === 'student'
+  const displayRooms = isStudent ? (rooms || []) : (rooms?.filter(r => r.endedAt) || [])
 
   return (
     <div style={{
@@ -44,8 +45,10 @@ function RoomHistoryPage() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>Room History</h1>
-              <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>View past classroom sessions</p>
+              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>Room History & Reports</h1>
+              <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>
+                {isStudent ? 'View detailed report & results for your joined rooms' : 'View past classroom sessions'}
+              </p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <ThemeToggle />
@@ -57,23 +60,24 @@ function RoomHistoryPage() {
         {/* Content */}
         <div style={{ flex: 1, padding: '32px' }}>
           <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)' }}>
-            Ended Rooms
+            {isStudent ? 'My Joined Rooms' : 'Ended Rooms'}
           </h2>
           
           {isLoading ? (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
               Loading rooms...
             </div>
-          ) : endedRooms.length > 0 ? (
+          ) : displayRooms.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-              {endedRooms.map((room) => (
+              {displayRooms.map((room) => (
                 <div
                   key={room._id}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     padding: '20px',
-                    background: 'var(--nav-hover)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '16px',
                     minHeight: '140px'
                   }}
@@ -86,15 +90,15 @@ function RoomHistoryPage() {
                       Code: <strong style={{ color: '#3b82f6', letterSpacing: '1px' }}>{room.code}</strong>
                     </p>
                     <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      Ended {room.endedAt ? new Date(room.endedAt).toLocaleDateString() : ''}
+                      {room.endedAt ? `Ended ${new Date(room.endedAt).toLocaleDateString()}` : 'Active Session'}
                     </p>
                   </div>
                   <button
-                    onClick={() => navigate(`/${user?.role === 'teacher' ? 'teacher' : 'student'}/room/${room._id}/results`)}
+                    onClick={() => navigate(`/${isStudent ? 'student' : 'teacher'}/room/${room._id}/results`)}
                     style={{
                       marginTop: '16px',
                       padding: '10px 16px',
-                      background: '#059669',
+                      background: isStudent ? '#3b82f6' : '#059669',
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
@@ -103,7 +107,7 @@ function RoomHistoryPage() {
                       cursor: 'pointer'
                     }}
                   >
-                    View Results →
+                    {isStudent ? 'View Detailed Report →' : 'View Results →'}
                   </button>
                 </div>
               ))}
@@ -111,8 +115,7 @@ function RoomHistoryPage() {
           ) : (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>📜</div>
-              <p>No ended rooms yet.</p>
-              <p style={{ fontSize: '12px', marginTop: '8px' }}>Rooms you end will appear here for review.</p>
+              <p>{isStudent ? 'No joined rooms yet.' : 'No ended rooms yet.'}</p>
             </div>
           )}
         </div>

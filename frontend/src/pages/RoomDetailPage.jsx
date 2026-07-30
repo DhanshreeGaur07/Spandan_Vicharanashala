@@ -12,6 +12,8 @@ import CreateQuestionOverlay from '../components/CreateQuestionOverlay'
 import TextToQuestionsPopup from '../components/TextToQuestionsPopup'
 import RoomSettingsModal from '../components/RoomSettingsModal'
 import Leaderboard from '../components/Leaderboard'
+import PulseWaveform from '../components/PulseWaveform'
+import useSocketStore from '../stores/socketStore'
 import { saveTranscript } from '../services/transcriptService'
 import { transcribeAudio, getTranscriptionStatus, convertWebMToWav } from '../services/serverTranscriptionService'
 import { requestQuestionGeneration, fetchAllRoomQuestions } from '../services/questionService'
@@ -25,6 +27,7 @@ function RoomDetailPage() {
   const { user, token } = useAuthStore()
   const { getRoom, updateRoom, setAuthToken } = useRoomStore()
   const { roomCode, joinRoom, participants, pushQuestion } = useLiveRoom(roomId, token, 'teacher')
+  const { socket, pulseValue, pulseHolding, pulseTotal } = useSocketStore()
 
   const [room, setRoom] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -34,6 +37,14 @@ function RoomDetailPage() {
   const [showSettings, setShowSettings] = useState(false)
   const settingsRef = useRef(null)
   const transcriptRef = useRef(null)
+  const pulseHistoryRef = useRef([])
+
+  useEffect(() => {
+    if (isRoomJoined && room?.isActive !== false) {
+      pulseHistoryRef.current.push({ t: Date.now(), value: pulseValue })
+      if (pulseHistoryRef.current.length > 120) pulseHistoryRef.current.shift()
+    }
+  }, [pulseValue, isRoomJoined, room?.isActive])
 
   // Real-time transcription state
   const [isRecording, setIsRecording] = useState(false)
@@ -107,6 +118,14 @@ function RoomDetailPage() {
   const [totalParticipants, setTotalParticipants] = useState(0)
   const [answerCounts, setAnswerCounts] = useState({}) // questionId -> count
 
+  const [lostStats, setLostStats] = useState({
+    understoodPct: 100,
+    lostPct: 0,
+    lostCount: 0,
+    totalJoined: 0,
+    topConcepts: []
+  })
+
   // Synchronize participants from hook
   useEffect(() => {
     setTotalParticipants(participants)
@@ -164,8 +183,17 @@ function RoomDetailPage() {
     const handleCounts = (payload) => {
       if (payload?.counts) setAnswerCounts(payload.counts)
     }
+    const handleLostUpdated = (data) => {
+      if (data?.stats || data?.lostCount !== undefined) {
+        setLostStats(data.stats || data)
+      }
+    }
     socket.on('counts:updated', handleCounts)
-    return () => socket.off('counts:updated', handleCounts)
+    socket.on('lost:updated', handleLostUpdated)
+    return () => {
+      socket.off('counts:updated', handleCounts)
+      socket.off('lost:updated', handleLostUpdated)
+    }
   }, [socket])
 
   // Listen for question launch events to show timer to teacher
@@ -1010,10 +1038,32 @@ function RoomDetailPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>{room.name}</h1>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <ThemeToggle />
-              <ProfileDropdown />
+              {/* Room Controls */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  onClick={() => navigate(`/rooms/${room._id}/surface`)}
+                  style={{
+                    padding: '8px 14px',
+                    background: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                  title="View AI Class Report & Post-Mortem Analysis"
+                >
+                  📋 Class Report
+                </button>
+                <div style={{ position: 'relative' }} ref={settingsRef}>
+                  <ThemeToggle />
+                  <ProfileDropdown />
+                </div>
+              </div>
             </div>
           </div>
         </header>
@@ -1236,13 +1286,86 @@ function RoomDetailPage() {
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '14px',
-                fontWeight: '600',
+                fontWeight: '500',
                 cursor: 'pointer'
               }}>
                 End Room
               </button>
             )}
+
+            {/* Stat Cards Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '14px 18px', textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', fontWeight: '800', color: '#166534' }}>{lostStats.understoodPct}%</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#15803d', marginTop: '2px' }}>
+                  Understood ({lostStats.understoodCount}/{lostStats.totalJoined})
+                </div>
+              </div>
+
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '14px 18px', textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', fontWeight: '800', color: '#991b1b' }}>{lostStats.lostPct}%</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#b91c1c', marginTop: '2px' }}>
+                  Verified Lost ({lostStats.lostCount}/{lostStats.totalJoined})
+                </div>
+              </div>
+
+              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '14px 18px', textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', fontWeight: '800', color: '#1e40af' }}>{lostStats.totalJoined}</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#1d4ed8', marginTop: '2px' }}>
+                  Total Connected Students
+                </div>
+              </div>
+            </div>
+
+            {/* Visual Comprehension Bar */}
+            <div style={{ width: '100%', height: '12px', background: '#fee2e2', borderRadius: '6px', overflow: 'hidden', display: 'flex', marginBottom: '14px' }}>
+              <div style={{ width: `${lostStats.understoodPct}%`, height: '100%', background: '#22c55e', transition: 'width 0.4s ease' }} />
+              <div style={{ width: `${lostStats.lostPct}%`, height: '100%', background: '#ef4444', transition: 'width 0.4s ease' }} />
+            </div>
+
+            {/* Live Confusion Topics List */}
+            {lostStats.topConcepts && lostStats.topConcepts.length > 0 && (
+              <div style={{ background: 'var(--bg-primary)', borderRadius: '10px', padding: '12px 16px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  📌 Top Flagged Confusion Points:
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {lostStats.topConcepts.map((item, idx) => (
+                    <span key={idx} style={{
+                      background: '#fee2e2',
+                      color: '#991b1b',
+                      border: '1px solid #fca5a5',
+                      padding: '4px 10px',
+                      borderRadius: '16px',
+                      fontSize: '12px',
+                      fontWeight: '600'
+                    }}>
+                      {item.concept} ({item.count})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Pulse Waveform */}
+          {roomSettings.pulseEnabled && !isEnded && isRoomJoined && (
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: '16px',
+              padding: '24px',
+              marginBottom: '20px',
+              border: '1px solid var(--border-color)',
+              boxShadow: 'var(--card-shadow)'
+            }}>
+              <PulseWaveform 
+                pulseHistory={pulseHistoryRef.current} 
+                pulseValue={pulseValue} 
+                pulseHolding={pulseHolding} 
+                pulseTotal={pulseTotal} 
+              />
+            </div>
+          )}
 
           {/* Microphone and Transcription Row - 30/70 Split */}
           <div style={{ display: 'flex', gap: '20px', height: '420px', marginBottom: '20px', flexWrap: 'wrap', overflowX: 'hidden' }}>

@@ -37,6 +37,13 @@ const transcriptSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  driftOptions: [{
+    type: String
+  }],
+  driftOptionsGeneratedAt: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

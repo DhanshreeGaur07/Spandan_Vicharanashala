@@ -1,4 +1,6 @@
 import express from 'express'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
@@ -23,6 +25,10 @@ import dashboardRoutes from './routes/dashboard.js'
 import reportsRoutes from './routes/reports.js'
 import lmsAuthRoutes from './routes/lmsAuth.js'
 import liveRoutes from './routes/live.js'
+import pulseRoutes from './routes/pulse.js'
+import driftRoutes from './routes/drift.js'
+import surfaceRoutes from './routes/surface.js'
+import lostRoutes from './routes/lost.js'
 
 // Import services
 import { startCleanupRoutine } from './services/roomStateService.js'
@@ -278,11 +284,117 @@ async function getCachedStudentRank(roomId, studentId) {
   return { rank: state.rankByStudent?.get(String(studentId)) ?? null, totalParticipants: state.total ?? null }
 }
 
+// (3) Live Pulse Broadcast — throttled to emit max once per 500ms
+const PULSE_THROTTLE_MS = 500
+const roomPulseMap = new Map() // roomCode -> Map<socketId, boolean>
+let pulseBroadcastCounter = 0 // to sample 1-in-10 for MongoDB persistence
+
+async function broadcastPulse(roomCode) {
+  try {
+    const socketMap = roomPulseMap.get(roomCode)
+    const holding = socketMap ? socketMap.size : 0
+    
+    // Total students connected in this room's socket.io room
+    const sockets = await io.in(roomCode).fetchSockets()
+    // Optional: filter to only count students, but fetching all sockets is simpler and usually sufficient.
+    const total = sockets.length
+    
+    const value = total > 0 ? (holding / total) * 100 : 0
+    
+    io.to(roomCode).emit('room:pulse', {
+      value,
+      holding,
+      total
+    })
+
+    // Every 10th broadcast (approx 5 seconds if heavily active), persist a snapshot
+    pulseBroadcastCounter++
+    if (pulseBroadcastCounter % 10 === 0) {
+      const Room = (await import('./models/Room.js')).default
+      const room = await Room.findOne({ code: roomCode }).select('_id').lean()
+      if (room) {
+        const PulseSnapshot = (await import('./models/PulseSnapshot.js')).default
+        await PulseSnapshot.create({
+          roomId: room._id,
+          value,
+          holding,
+          total
+        })
+      }
+    }
+  } catch (err) {
+    console.error('broadcastPulse error:', err.message)
+  }
+}
+
+async function schedulePulseBroadcast(roomCode) {
+  if (!roomCode) return
+  if (redis.enabled) {
+    try {
+      const won = await redis.client.set(`live:pulse:sched:${roomCode}`, INSTANCE_ID, { NX: true, PX: PULSE_THROTTLE_MS })
+      if (won === 'OK') setTimeout(() => broadcastPulse(roomCode), PULSE_THROTTLE_MS)
+    } catch (e) {
+      setTimeout(() => broadcastPulse(roomCode), PULSE_THROTTLE_MS)
+    }
+    return
+  }
+  
+  const s = getRoomState(roomCode) // Re-use roomLive state for timer
+  if (s.pulseTimer) return
+  s.pulseTimer = setTimeout(() => { 
+    const st = roomLive.get(roomCode); 
+    if (st) st.pulseTimer = null; 
+    broadcastPulse(roomCode) 
+  }, PULSE_THROTTLE_MS)
+}
+
+async function serveDriftPrompt(socket, roomCode, roomId) {
+  try {
+    const Transcript = (await import('./models/Transcript.js')).default
+    const Room = (await import('./models/Room.js')).default
+
+    let roomObjId = roomId
+    if (!roomObjId && roomCode) {
+      const room = await Room.findOne({ code: roomCode }).select('_id').lean()
+      if (room) roomObjId = room._id
+    }
+    if (!roomObjId) return
+
+    const latestSegment = await Transcript.findOne({ roomId: roomObjId })
+      .sort({ segmentIndex: -1 }).select('segmentIndex driftOptions').lean()
+    if (!latestSegment) return
+
+    let options = latestSegment.driftOptions
+
+    if (redis.enabled && (!options || options.length < 3)) {
+      try {
+        const cached = await redis.client.get(
+          `drift:opts:${roomObjId}:${latestSegment.segmentIndex}`
+        )
+        if (cached) options = JSON.parse(cached)
+      } catch { /* fall through */ }
+    }
+
+    if (!options || options.length < 3) {
+      options = ['The core concept just introduced', 'The relationship between terms', 'The example given']
+    }
+
+    socket.emit('drift:prompt', {
+      options,
+      segmentIndex: latestSegment.segmentIndex,
+      expiresAt: Date.now() + 5000
+    })
+  } catch (err) {
+    console.error('Error in serveDriftPrompt:', err.message)
+  }
+}
+
 app.set('liveUpdates', {
   scheduleCounts: scheduleCountsBroadcast,
   scheduleLeaderboard: scheduleLeaderboardRefresh,
   refreshLeaderboardNow,
-  getRank: getCachedStudentRank
+  getRank: getCachedStudentRank,
+  schedulePulseBroadcast
 })
 
 // Trust proxy (for rate limiting behind nginx)
@@ -366,6 +478,10 @@ app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/reports', reportsRoutes)
 app.use('/api/lms', lmsAuthRoutes)
 app.use('/api/live', liveRoutes)
+app.use('/api/pulse', pulseRoutes)
+app.use('/api/drift', driftRoutes)
+app.use('/api/surface', surfaceRoutes)
+app.use('/api/lost', lostRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -540,10 +656,66 @@ io.on('connection', (socket) => {
     io.to(data.roomCode).emit('leaderboard:updated', data)
   })
 
+  // Pulse Hold feature
+  socket.on('pulse:hold', async (data) => {
+    const userId = connectedUsers.get(socket.id)
+    if (!userId) return // Require authenticated user
+
+    try {
+      const User = (await import('./models/User.js')).default
+      const user = await User.findById(userId).select('role').lean()
+      if (user?.role !== 'student') return // Students only
+
+      // Find which roomCode this socket has joined
+      let joinedRoomCode = null
+      for (const room of socket.rooms) {
+        if (room !== socket.id) {
+          joinedRoomCode = room
+          break
+        }
+      }
+
+      if (!joinedRoomCode) return
+
+      // Update in-memory pulse state
+      let socketMap = roomPulseMap.get(joinedRoomCode)
+      if (!socketMap) {
+        socketMap = new Map()
+        roomPulseMap.set(joinedRoomCode, socketMap)
+      }
+      
+      const wasHolding = socketMap.has(socket.id)
+
+      if (data?.holding) {
+        socketMap.set(socket.id, true)
+      } else {
+        socketMap.delete(socket.id)
+      }
+
+      // Throttle broadcast
+      schedulePulseBroadcast(joinedRoomCode)
+
+      // Drift trigger: student just released (was holding, now not)
+      if (wasHolding && !data?.holding && user?.role === 'student') {
+        serveDriftPrompt(socket, joinedRoomCode, null).catch(() => {})
+      }
+    } catch (err) {
+      console.error('Error in pulse:hold:', err)
+    }
+  })
+
   socket.on('disconnect', () => {
     const userId = connectedUsers.get(socket.id)
     connectedUsers.delete(socket.id)
     console.log('Client disconnected:', socket.id, userId ? `(user: ${userId})` : '')
+
+    // Remove this socket from all room pulse maps it was registered in
+    roomPulseMap.forEach((socketMap, roomCode) => {
+      if (socketMap.has(socket.id)) {
+        socketMap.delete(socket.id)
+        schedulePulseBroadcast(roomCode) // recompute after departure
+      }
+    })
   })
 })
 
@@ -589,8 +761,9 @@ const connectDB = async () => {
 
     console.log('MongoDB connected successfully')
   } catch (error) {
-    console.error('MongoDB connection error:', error.message)
-    console.log('Server will continue without database connection')
+    console.error('CRITICAL: MongoDB connection error:', error.message)
+    console.error('Server requires MongoDB to function. Exiting process.')
+    process.exit(1)
   }
 }
 
@@ -598,7 +771,7 @@ const connectDB = async () => {
 const startServer = async () => {
   await connectDB()
 
-  app.listen(PORT, () => {
+  httpServer.listen(PORT, () => {
     console.log(`Spandan backend v0.5 running on port ${PORT}`)
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`)
     startCleanupRoutine()

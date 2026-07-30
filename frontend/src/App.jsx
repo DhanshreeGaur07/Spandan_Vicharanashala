@@ -21,6 +21,7 @@ const RoomHistoryPage = lazy(() => import('./pages/RoomHistoryPage'))
 const RoomResultsPage = lazy(() => import('./pages/RoomResultsPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const DemoPollPage = lazy(() => import('./pages/DemoPollPage'))
+const SurfacePage = lazy(() => import('./pages/SurfacePage'))
 
 // Loading Fallback Component
 const PageLoader = () => (
@@ -94,6 +95,11 @@ function App() {
           <Route path="/teacher/room/:roomId/results" element={
             <ProtectedRoute allowedRoles={['teacher']}>
               <RoomResultsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/rooms/:roomId/surface" element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <SurfacePage />
             </ProtectedRoute>
           } />
           <Route path="/student" element={

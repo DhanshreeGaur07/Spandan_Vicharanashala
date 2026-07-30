@@ -361,6 +361,34 @@ function RoomResultsPage() {
             )}
           </div>
           
+          {user?.role === 'teacher' && room?.endedAt && (
+            <div
+              onClick={() => navigate(`/rooms/${room._id}/surface`)}
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 12,
+                padding: '20px 24px',
+                cursor: 'pointer',
+                marginBottom: 24,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+              }}
+            >
+              <span style={{ fontSize: 28 }}>📋</span>
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 15 }}>
+                  Session Report Ready
+                </div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 2 }}>
+                  See what worked, what didn't, and where to start next class
+                </div>
+              </div>
+              <span style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>→</span>
+            </div>
+          )}
+
           {/* Overview Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
             <div style={{

@@ -1,7 +1,8 @@
 import express from 'express'
 import { authenticate, authorize } from '../middleware/auth.js'
 import { AsyncParser } from 'json2csv'
-import PDFDocument from 'pdfkit'
+import PDFDocument from 'pdfkit/js/pdfkit.js'
+import mongoose from 'mongoose'
 import User from '../models/User.js'
 import Room from '../models/Room.js'
 import RoomMember from '../models/RoomMember.js'
@@ -31,9 +32,11 @@ router.get('/:roomId/attendance.csv', async (req, res) => {
     // Get all members who joined the room
     const members = await RoomMember.find({ roomId: req.params.roomId }).populate('studentId')
     
+    const roomObjId = new mongoose.Types.ObjectId(req.params.roomId)
+    
     // Get all responses to determine participation
     const responses = await Response.aggregate([
-      { $match: { roomId: req.params.roomId } },
+      { $match: { roomId: roomObjId } },
       { $group: { _id: '$studentId', count: { $sum: 1 } } }
     ])
     
@@ -82,8 +85,9 @@ router.get('/:roomId/analytics/csv', async (req, res) => {
     await verifyRoomOwnership(req.params.roomId, req.user._id)
     
     // Get leaderboard
+    const roomObjId = new mongoose.Types.ObjectId(req.params.roomId)
     const leaderboardData = await Response.aggregate([
-      { $match: { roomId: req.params.roomId } },
+      { $match: { roomId: roomObjId } },
       { $group: {
         _id: '$studentId',
         totalPoints: { $sum: '$points' },
@@ -207,8 +211,9 @@ router.post('/:roomId/push-grades', async (req, res) => {
     const { provider, courseId, assignmentId } = req.body
     
     // Calculate session scores for all students
+    const roomObjId = new mongoose.Types.ObjectId(req.params.roomId)
     const leaderboardData = await Response.aggregate([
-      { $match: { roomId: req.params.roomId } },
+      { $match: { roomId: roomObjId } },
       { $group: {
         _id: '$studentId',
         totalPoints: { $sum: '$points' }

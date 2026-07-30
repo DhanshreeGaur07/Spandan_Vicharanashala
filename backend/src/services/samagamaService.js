@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import User from '../models/User.js'
 
 /**
@@ -59,7 +60,7 @@ export async function findOrCreateSamagamaUser(samagamaUser) {
     name,
     email: email.toLowerCase(),
     role,
-    password: 'samagama-sso-placeholder' // User cannot log in standalone without setting a password
+    password: crypto.randomBytes(32).toString('hex') // Unguessable — SSO users authenticate via Samagama, not standalone login
   })
 
   await user.save()
