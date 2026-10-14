@@ -5,6 +5,7 @@ import useSocketStore from '../stores/socketStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import ProfileDropdown from '../components/ProfileDropdown'
 import { API_URL } from '../config.js'
 import useIsMobile from '../hooks/useIsMobile'
@@ -125,6 +126,7 @@ function StudentDashboard() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+              <HelpButton />
               <ThemeToggle />
               <ProfileDropdown />
             </div>
@@ -178,7 +180,7 @@ function StudentDashboard() {
           </div>
 
           {/* Quick Join Section */}
-          <div style={{
+          <div data-tour="quick-join" style={{
             background: 'var(--bg-card)',
             borderRadius: 'var(--radius-lg)',
             padding: isMobile ? '20px' : '24px',

@@ -4,6 +4,7 @@ import useAuthStore from '../stores/authStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import ProfileDropdown from '../components/ProfileDropdown'
 import useIsMobile from '../hooks/useIsMobile'
 import { API_URL } from '../config.js'
@@ -94,6 +95,7 @@ function RoomHistoryPage() {
               <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>View past classroom sessions</p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <HelpButton />
               <ThemeToggle />
               <ProfileDropdown />
             </div>
@@ -130,7 +132,7 @@ function RoomHistoryPage() {
               Loading rooms...
             </div>
           ) : endedRooms.length > 0 ? (
-            <div style={{
+            <div data-tour="history-list" style={{
               display: 'grid',
               gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: '16px'
@@ -171,7 +173,7 @@ function RoomHistoryPage() {
                     </p>
                   </div>
                   <div style={{ marginTop: '18px', display: 'flex', gap: '10px' }}>
-                    <button
+                    <button data-tour="view-results"
                       onClick={() => navigate(`/${user?.role === 'teacher' ? 'teacher' : 'student'}/room/${room._id}/results`)}
                       style={{
                         flex: 1,
@@ -189,6 +191,7 @@ function RoomHistoryPage() {
                     </button>
                     {user?.role === 'teacher' && (
                       <button
+                        data-tour="csv-button"
                         onClick={() => downloadCsv(room)}
                         disabled={downloadingId === room._id}
                         title="Download complete results as CSV"

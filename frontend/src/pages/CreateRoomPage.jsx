@@ -5,6 +5,7 @@ import useRoomStore from '../stores/roomStore'
 import useSocketStore from '../stores/socketStore'
 import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import ProfileDropdown from '../components/ProfileDropdown'
 import useIsMobile from '../hooks/useIsMobile'
 
@@ -105,6 +106,7 @@ function CreateRoomPage() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <HelpButton />
               <ThemeToggle />
               <ProfileDropdown />
             </div>
@@ -159,7 +161,7 @@ function CreateRoomPage() {
               </div>
             )}
 
-            <div style={{ marginBottom: '24px' }}>
+            <div data-tour="room-name" style={{ marginBottom: '24px' }}>
               <label style={{
                 display: 'block',
                 fontSize: '13px',
@@ -199,7 +201,7 @@ function CreateRoomPage() {
             </div>
 
             {/* Room Mode */}
-            <div style={{ marginBottom: '24px' }}>
+            <div data-tour="room-mode" style={{ marginBottom: '24px' }}>
               <label style={{
                 display: 'block',
                 fontSize: '13px',
@@ -300,6 +302,7 @@ function CreateRoomPage() {
               flexDirection: isMobile ? 'column-reverse' : 'row'
             }}>
               <button
+                data-tour="create-button"
                 onClick={handleCreateRoom}
                 disabled={isDisabled}
                 style={{

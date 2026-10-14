@@ -6,6 +6,7 @@ import useRoomStore from '../stores/roomStore'
 import useSocketStore from '../stores/socketStore'
 import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import ProfileDropdown from '../components/ProfileDropdown'
 import useIsMobile from '../hooks/useIsMobile'
 
@@ -201,6 +202,7 @@ function DashboardPage() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+              <HelpButton />
               <ThemeToggle />
               <ProfileDropdown />
             </div>
@@ -255,7 +257,7 @@ function DashboardPage() {
           </div>
 
           {/* Create Room Section */}
-          <div style={{
+          <div data-tour="create-room" style={{
             background: 'var(--bg-card)',
             borderRadius: 'var(--radius-lg)',
             padding: isMobile ? '20px' : '24px',
@@ -390,7 +392,7 @@ function DashboardPage() {
           </div>
 
           {/* Active Rooms List */}
-          <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>
+          <h2 data-tour="active-rooms" style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>
               My Active Rooms
             </h2>
 

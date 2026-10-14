@@ -5,6 +5,7 @@ import useSocketStore from '../stores/socketStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import ProfileDropdown from '../components/ProfileDropdown'
 import Leaderboard from '../components/Leaderboard'
 import ErrorBoundary from '../components/ErrorBoundary'
@@ -57,6 +58,9 @@ function StudentRoomPage() {
   // True when a "question time" chime could not play because the browser has not seen a user gesture on
   // this page yet (e.g. after a reload). Shows a one-tap "Enable sound" button; cleared once sound works.
   const [soundBlocked, setSoundBlocked] = useState(false)
+  // One-time hint for new students (per device). Dismissed with ✕; never shown again on this browser.
+  const [showHint, setShowHint] = useState(() => { try { return localStorage.getItem('spandan.studentHintSeen') !== '1' } catch (e) { return true } })
+  const dismissHint = () => { setShowHint(false); try { localStorage.setItem('spandan.studentHintSeen', '1') } catch (e) { /* ignore */ } }
   useEffect(() => { installUnlockOnInteraction() }, [])
   const enableSound = async () => {
     await unlockAudio()
@@ -483,6 +487,7 @@ function StudentRoomPage() {
               <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>Code: {room.code}</p>
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <HelpButton />
               <ThemeToggle />
               <ProfileDropdown />
             </div>
@@ -491,8 +496,23 @@ function StudentRoomPage() {
 
         {/* Content */}
         <div style={{ flex: 1, padding: isMobile ? '16px' : '32px', width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
+          {showHint && (
+            <div role="note" style={{
+              background: 'var(--bg-card)', border: '1px solid #93c5fd', borderLeft: '4px solid #3b82f6',
+              borderRadius: '12px', padding: '12px 16px', marginBottom: '16px',
+              display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-primary)', fontSize: '14px'
+            }}>
+              <span aria-hidden="true" style={{ fontSize: '18px' }}>💡</span>
+              <span style={{ flex: 1 }}>
+                When your teacher's questions are ready you will hear a chime, and each question takes over this screen until its timer ends.
+                Answer quickly — points reward speed. Tap the ⓘ button in the header for the full guide.
+              </span>
+              <button onClick={dismissHint} aria-label="Dismiss hint" style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '16px', cursor: 'pointer', padding: '4px' }}>✕</button>
+            </div>
+          )}
+
           {/* Connection Status */}
-          <div style={{
+          <div data-tour="status-row" style={{
             background: 'var(--bg-card)',
             borderRadius: '16px',
             padding: '16px 24px',
@@ -752,7 +772,7 @@ function StudentRoomPage() {
           <div style={{ display: currentQuestion ? 'none' : 'flex', flexDirection: 'column', gap: '24px' }}>
               {/* Active question area placeholder — hidden in video mode (the player fills this space) */}
               {!isVideoMode && (
-              <div style={{
+              <div data-tour="question-area" style={{
                 background: 'var(--bg-card)',
                 borderRadius: 'var(--radius-lg)',
                 padding: isMobile ? '32px 20px' : '48px',
@@ -785,7 +805,7 @@ function StudentRoomPage() {
               {/* Past Questions (flex) + Leaderboard (flex) */}
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
                 {/* Past Questions - flexible width */}
-                <div style={{ flex: isMobile ? '1 1 100%' : '1 1 calc(70% - 8px)', minWidth: 0, maxWidth: '100%', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', padding: isMobile ? '16px' : '24px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}>
+                <div data-tour="past-questions" style={{ flex: isMobile ? '1 1 100%' : '1 1 calc(70% - 8px)', minWidth: 0, maxWidth: '100%', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', padding: isMobile ? '16px' : '24px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}>
                   <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px' }}>
                     📋 Past Questions {pastResponses.length > 0 && `(${pastResponses.length})`}
                   </h3>
@@ -989,7 +1009,7 @@ function StudentRoomPage() {
                 )}
                 </div>
                 {/* Leaderboard - flexible width */}
-                <div style={{ flex: isMobile ? '1 1 100%' : '1 1 calc(30% - 10px)', minWidth: 0, maxWidth: '100%', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', padding: isMobile ? '16px' : '24px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-color)', boxSizing: 'border-box', overflow: 'hidden' }}>
+                <div data-tour="leaderboard" style={{ flex: isMobile ? '1 1 100%' : '1 1 calc(30% - 10px)', minWidth: 0, maxWidth: '100%', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', padding: isMobile ? '16px' : '24px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-color)', boxSizing: 'border-box', overflow: 'hidden' }}>
                   <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px' }}>
                     🏆 Leaderboard
                   </h3>

@@ -8,13 +8,11 @@ const menuItems = {
     { id: 'create-room', label: 'Create Room', icon: '➕', path: '/teacher/create-room' },
     { id: 'manage-room', label: 'Manage Room', icon: '⚙️', path: '/teacher/manage-room' },
     { id: 'room-history', label: 'Room History', icon: '📜', path: '/teacher/room-history' },
-    { id: 'manual', label: 'Manual', icon: 'ℹ️', path: '/teacher/help' },
   ],
   student: [
     { id: 'dashboard', label: 'Dashboard', icon: '📊', path: '/student' },
     { id: 'join-room', label: 'Join Room', icon: '🔗', path: '/student/join-room' },
     { id: 'room-history', label: 'Room History', icon: '📜', path: '/student/room-history' },
-    { id: 'manual', label: 'Manual', icon: 'ℹ️', path: '/student/help' },
   ]
 }
 
@@ -29,14 +27,11 @@ export default function Sidebar({ user }) {
   const location = useLocation()
   const role = user?.role || 'student'
   const baseItems = menuItems[role] || menuItems.student
-  // Admins get an extra "Approvals" entry, placed just above "Manual".
+  // Admins get an extra "Approvals" entry at the end. (The old "Manual" entry is gone: help now
+  // lives in the ⓘ drawer in every page header.)
   let items = baseItems
   if (user?.isAdmin) {
-    const adminItem = { id: 'admin', label: 'Approvals', icon: '🛡️', path: '/admin' }
-    const idx = baseItems.findIndex(i => i.id === 'manual')
-    items = idx === -1
-      ? [...baseItems, adminItem]
-      : [...baseItems.slice(0, idx), adminItem, ...baseItems.slice(idx)]
+    items = [...baseItems, { id: 'admin', label: 'Approvals', icon: '🛡️', path: '/admin' }]
   }
 
   const [isMobile, setIsMobile] = useState(() =>
@@ -157,7 +152,7 @@ export default function Sidebar({ user }) {
         )}
 
         {/* Navigation */}
-        <nav style={{ flex: 1, padding: showLabels ? '14px 12px' : '10px 0', overflowY: 'auto' }}>
+        <nav data-tour="sidebar" style={{ flex: 1, padding: showLabels ? '14px 12px' : '10px 0', overflowY: 'auto' }}>
           {items.map((item) => {
             const isActive = location.pathname === item.path ||
               (item.id === 'dashboard' && (location.pathname === '/teacher' || location.pathname === '/student'))

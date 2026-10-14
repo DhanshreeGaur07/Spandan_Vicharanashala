@@ -5,6 +5,7 @@ import useSocketStore from '../stores/socketStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import ProfileDropdown from '../components/ProfileDropdown'
 import useIsMobile from '../hooks/useIsMobile'
 
@@ -109,6 +110,7 @@ function JoinRoomPage() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <HelpButton />
               <ThemeToggle />
               <ProfileDropdown />
             </div>
@@ -183,7 +185,7 @@ function JoinRoomPage() {
               </div>
             )}
 
-            <div style={{ marginBottom: '24px' }}>
+            <div data-tour="join-code" style={{ marginBottom: '24px' }}>
               <input
                 type="text"
                 value={roomCode}
@@ -211,7 +213,7 @@ function JoinRoomPage() {
               />
             </div>
 
-            <button
+            <button data-tour="join-button"
               onClick={handleJoinRoom}
               disabled={isDisabled}
               style={{

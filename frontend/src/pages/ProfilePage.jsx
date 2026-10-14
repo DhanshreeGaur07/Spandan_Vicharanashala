@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../stores/authStore'
 import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import ProfileDropdown from '../components/ProfileDropdown'
 import PasswordInput from '../components/PasswordInput'
 import useIsMobile from '../hooks/useIsMobile'
@@ -306,6 +307,7 @@ function ProfilePage() {
               <p style={{ margin: '4px 0 0', fontSize: '13px', opacity: 0.85 }}>Manage your account details</p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <HelpButton />
               <ThemeToggle />
               <ProfileDropdown />
             </div>
@@ -372,7 +374,7 @@ function ProfilePage() {
           </button>
 
           {activeTab === 'password' ? (
-            <div style={{
+            <div data-tour="change-password" style={{
               ...cardStyle,
               padding: isMobile ? '20px' : '24px',
               maxWidth: '500px'
@@ -679,7 +681,7 @@ function ProfilePage() {
                       <p style={{ margin: '4px 0 0', fontSize: '14px', opacity: 0.85, textTransform: 'capitalize' }}>{user?.role}</p>
                       <p style={{ margin: '2px 0 0', fontSize: '12px', opacity: 0.7, wordBreak: 'break-word' }}>{user?.email}</p>
                     </div>
-                    <button
+                    <button data-tour="edit-profile"
                       onClick={() => setIsEditing(true)}
                       style={{
                         marginLeft: isMobile ? 0 : 'auto',

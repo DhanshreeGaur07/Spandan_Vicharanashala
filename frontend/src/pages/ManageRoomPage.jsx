@@ -4,6 +4,7 @@ import useAuthStore from '../stores/authStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import ProfileDropdown from '../components/ProfileDropdown'
 import useIsMobile from '../hooks/useIsMobile'
 
@@ -77,6 +78,7 @@ function ManageRoomPage() {
               <p style={{ margin: '6px 0 0', opacity: 0.9, fontSize: '14px' }}>View and manage your active classrooms</p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <HelpButton />
               <ThemeToggle />
               <ProfileDropdown />
             </div>
@@ -131,7 +133,7 @@ function ManageRoomPage() {
               Loading rooms...
             </div>
           ) : activeRooms.length > 0 ? (
-            <div style={{
+            <div data-tour="room-list" style={{
               display: 'grid',
               gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: '16px'
@@ -211,6 +213,7 @@ function ManageRoomPage() {
                     flexWrap: 'wrap'
                   }}>
                     <button
+                      data-tour="manage-button"
                       onClick={(e) => { e.stopPropagation(); navigate(`/teacher/room/${room._id}`) }}
                       style={{
                         flex: 1,

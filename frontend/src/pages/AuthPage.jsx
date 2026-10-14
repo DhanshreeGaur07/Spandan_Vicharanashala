@@ -5,6 +5,7 @@ import SpandanIcon from '../components/SpandanIcon'
 import useSocketStore from '../stores/socketStore'
 import PasswordInput from '../components/PasswordInput'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import useThemeStore from '../stores/themeStore'
 import useIsMobile from '../hooks/useIsMobile'
 import { API_URL } from '../config.js'
@@ -334,6 +335,12 @@ function AuthPage() {
         {isDark ? '☀️' : '🌙'}
         <span style={{ fontSize: '13px', fontWeight: '600' }}>{isDark ? 'Light' : 'Dark'}</span>
       </button>
+
+      {/* ⓘ help: how to register and sign in (opens the guest guide) */}
+      <HelpButton style={{
+        position: 'absolute', top: '20px', right: '120px', zIndex: 5,
+        background: 'var(--bg-card)', borderRadius: 'var(--radius)', padding: '9px 14px', boxShadow: 'var(--shadow-sm)'
+      }} />
 
       {/* Left side - Branding (desktop only) */}
       {!isMobile && (

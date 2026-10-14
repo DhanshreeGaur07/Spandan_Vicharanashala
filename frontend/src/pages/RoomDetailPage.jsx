@@ -6,6 +6,7 @@ import useRoomStore from '../stores/roomStore'
 import useThemeStore from '../stores/themeStore'
 import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import ProfileDropdown from '../components/ProfileDropdown'
 import QuestionApprovalPopup from '../components/QuestionApprovalPopup'
 import TextQuestionApprovalPopup from '../components/TextQuestionApprovalPopup'
@@ -1263,6 +1264,7 @@ function RoomDetailPage() {
               <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{room.name}</h1>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <HelpButton />
               <ThemeToggle />
               <ProfileDropdown />
             </div>
@@ -1304,7 +1306,7 @@ function RoomDetailPage() {
               ←
             </button>
 
-            <div style={{
+            <div data-tour="room-code" style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -1417,6 +1419,7 @@ function RoomDetailPage() {
             {/* Paste & Generate Button */}
             {!isEnded && (
               <button
+                data-tour="paste-generate"
                 onClick={() => { setPastedText(''); setShowTextToQuestions(true) }}
                 style={{
                   padding: '8px 16px',
@@ -1464,6 +1467,7 @@ function RoomDetailPage() {
             {/* Settings Dropdown */}
             <div style={{ position: 'relative' }} ref={settingsRef}>
               <button
+                data-tour="settings"
                 onClick={() => setShowSettings(true)}
                 style={{
                   padding: '8px 16px',
@@ -1508,7 +1512,7 @@ function RoomDetailPage() {
 
             {/* End Room Button */}
             {!isEnded && (
-              <button onClick={handleEndRoom} style={{
+              <button data-tour="end-room" onClick={handleEndRoom} style={{
                 padding: '8px 16px',
                 background: '#ef4444',
                 color: 'white',
@@ -1637,6 +1641,7 @@ function RoomDetailPage() {
                   )}
                   {videoId && !videoSessionActive && (
                     <button
+                      data-tour="start-capture"
                       onClick={beginVideoSession}
                       disabled={isEnded}
                       style={{
@@ -1668,7 +1673,7 @@ function RoomDetailPage() {
               {!isVideoMode && (
               <>
               {/* Mic Button */}
-              <button
+              <button data-tour="start-capture"
                 onClick={toggleRecording}
                 disabled={isEnded}
                 style={{
@@ -1772,7 +1777,7 @@ function RoomDetailPage() {
             </div>
 
             {/* Transcription Card */}
-            <div style={{
+            <div data-tour="transcript" style={{
               flex: isMobile ? '1 1 100%' : (isVideoMode ? '1 1 calc(40% - 10px)' : '1 1 calc(70% - 10px)'),
               minWidth: isMobile ? 0 : '300px',
               maxWidth: '100%',

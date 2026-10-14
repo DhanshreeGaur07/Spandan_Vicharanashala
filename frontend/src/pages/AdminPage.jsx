@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../stores/authStore'
 import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import ProfileDropdown from '../components/ProfileDropdown'
 import useIsMobile from '../hooks/useIsMobile'
 import { adminApi } from '../lib/api'
@@ -88,6 +89,7 @@ export default function AdminPage() {
               <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>Review and approve teacher account requests</p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <HelpButton />
               <ThemeToggle />
               <ProfileDropdown />
             </div>
@@ -120,7 +122,7 @@ export default function AdminPage() {
                 No {tab} teacher accounts.
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
+              <div data-tour="approvals-table" style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
@@ -140,7 +142,7 @@ export default function AdminPage() {
                         {tab === 'rejected' && <td style={{ ...td, color: 'var(--text-secondary)' }}>{r.rejectionReason || '—'}</td>}
                         {tab === 'pending' && (
                           <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                            <button disabled={busyId === r._id} onClick={() => act(r._id, 'approve')} style={{
+                            <button data-tour="approve-button" disabled={busyId === r._id} onClick={() => act(r._id, 'approve')} style={{
                               padding: '7px 16px', marginRight: '8px', borderRadius: 'var(--radius-sm)', border: 'none',
                               background: '#16a34a', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
                               opacity: busyId === r._id ? 0.6 : 1

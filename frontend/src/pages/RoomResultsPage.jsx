@@ -4,6 +4,7 @@ import useAuthStore from '../stores/authStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
 import ThemeToggle from '../components/ThemeToggle'
+import HelpButton from '../components/HelpButton'
 import ProfileDropdown from '../components/ProfileDropdown'
 import { API_URL } from '../config.js'
 import { fetchAllRoomQuestions } from '../services/questionService'
@@ -236,6 +237,7 @@ function RoomResultsPage() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <HelpButton />
               <ThemeToggle />
               <ProfileDropdown />
             </div>
@@ -272,7 +274,7 @@ function RoomResultsPage() {
           </button>
 
           {/* Overview Stats */}
-          <div style={{
+          <div data-tour="results-stats" style={{
             display: 'grid',
             gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))',
             gap: '16px',
@@ -320,7 +322,7 @@ function RoomResultsPage() {
           </div>
 
           {/* Questions Analysis */}
-          <div style={{
+          <div data-tour="question-analysis" style={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-lg)',
