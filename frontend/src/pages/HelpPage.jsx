@@ -70,6 +70,7 @@ const TEACHER_SECTIONS = [
     icon: '❓', title: 'Running a poll & the leaderboard', ordered: true,
     body: [
       'Questions reach students from three places: auto-generated per segment, Paste & Generate, or Create Q.',
+      'A five-second chime rings when a generated batch is ready (auto-generated segments and Paste & Generate; not Create Q), and students hear their own chime at the same moment. While the popup is open and you are on another tab, the browser tab title flashes "(!) Questions ready". The 🔔 button next to Settings mutes the chime on this device.',
       'Review and approve each question in the popup — edit the wording or the correct answer if needed.',
       'Launch it. Students see the question and answer within the Time to Answer you set.',
       'Watch answers arrive; the leaderboard ranks students by points (correctness + speed).',
@@ -90,6 +91,7 @@ const STUDENT_SECTIONS = [
   {
     icon: '❓', title: 'Answering questions', ordered: true,
     body: [
+      'When the teacher\'s generated questions are ready, a five-second chime rings so you know it is question time (once per segment). If your browser blocked the sound, tap "Enable sound" once; the 🔔 button in the header mutes it on this device.',
       'When the teacher launches a poll, the question appears at the top of your screen and takes over.',
       'Read the question and pick your answer: MCQ and True/False want one choice; MSQ (multiple-select) wants every correct option — select all that apply.',
       'Answer before the timer runs out. Points reward both correctness and speed, so answer promptly.',

@@ -12,11 +12,14 @@ import TextQuestionApprovalPopup from '../components/TextQuestionApprovalPopup'
 import CreateQuestionOverlay from '../components/CreateQuestionOverlay'
 import TextToQuestionsPopup from '../components/TextToQuestionsPopup'
 import RoomSettingsModal from '../components/RoomSettingsModal'
+import SoundToggle from '../components/SoundToggle'
 import Leaderboard from '../components/Leaderboard'
 import ErrorBoundary from '../components/ErrorBoundary'
 import YouTubeVideo, { extractYouTubeId } from '../components/YouTubeVideo'
 import useIsMobile from '../hooks/useIsMobile'
 import { saveTranscript } from '../services/transcriptService'
+import { installUnlockOnInteraction } from '../lib/sounds'
+import useGeneratedBatchCues from '../hooks/useGeneratedBatchCues'
 import { transcribeAudio, getTranscriptionStatus, convertWebMToWav } from '../services/serverTranscriptionService'
 import { requestQuestionGeneration, fetchAllRoomQuestions } from '../services/questionService'
 import { API_URL } from '../config.js'
@@ -870,6 +873,14 @@ function RoomDetailPage() {
     createPopupWasOpenRef.current = showCreateQuestion
   }, [showCreateQuestion])
 
+  // Attention cues when a GENERATED batch arrives — the auto-segment approval popup or the Paste &
+  // Generate review popup opening (Create Q is the teacher's own typing: no cue). See the hook for the
+  // chime / 'questions:ready' emit (once per batch) / tab-title flash.
+  const generatedPopupOpen = (showQuestionPopup && pendingQuestions.length > 0)
+    || (showTextQuestionPopup && pendingTextQuestions.length > 0)
+  useEffect(() => { installUnlockOnInteraction() }, [])
+  useGeneratedBatchCues(generatedPopupOpen, socket, room?.code)
+
   const resumeTeacherVideo = () => {
     // Tell students the popup window is over so they resume + jump to the live edge (fire even if the
     // teacher's own player ref isn't ready).
@@ -1446,6 +1457,9 @@ function RoomDetailPage() {
                 ✍️ Create Q
               </button>
             )}
+
+            {/* Sound on/off for the attention chimes (per device) */}
+            <SoundToggle />
 
             {/* Settings Dropdown */}
             <div style={{ position: 'relative' }} ref={settingsRef}>

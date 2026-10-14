@@ -8,9 +8,11 @@ import ThemeToggle from '../components/ThemeToggle'
 import ProfileDropdown from '../components/ProfileDropdown'
 import Leaderboard from '../components/Leaderboard'
 import ErrorBoundary from '../components/ErrorBoundary'
+import SoundToggle from '../components/SoundToggle'
 import YouTubeVideo, { extractYouTubeId } from '../components/YouTubeVideo'
 import useIsMobile from '../hooks/useIsMobile'
 import { API_URL } from '../config.js'
+import { installUnlockOnInteraction, playStudentQuestion, unlockAudio } from '../lib/sounds'
 
 // Spread the ~N students' navigation to the results page over this window (ms). When a big room
 // ends, all students receive room:ended at once; without a spread they'd all hit the results
@@ -52,6 +54,15 @@ function StudentRoomPage() {
   // True while the teacher's question-approval popup is open. The student video stays paused for the
   // WHOLE popup window (across every question the teacher launches from it), not just per-question.
   const [teacherVideoPaused, setTeacherVideoPaused] = useState(false)
+  // True when a "question time" chime could not play because the browser has not seen a user gesture on
+  // this page yet (e.g. after a reload). Shows a one-tap "Enable sound" button; cleared once sound works.
+  const [soundBlocked, setSoundBlocked] = useState(false)
+  useEffect(() => { installUnlockOnInteraction() }, [])
+  const enableSound = async () => {
+    await unlockAudio()
+    const r = await playStudentQuestion()
+    if (r !== 'blocked') setSoundBlocked(false)
+  }
 
   useEffect(() => {
     if (!isVideoMode) return
@@ -186,6 +197,11 @@ function StudentRoomPage() {
 
     const handleVideoPause = () => setTeacherVideoPaused(true)
     const handleVideoResume = () => setTeacherVideoPaused(false)
+    // Teacher's GENERATED batch arrived (once per segment / Paste & Generate; never for Create Q).
+    const handleQuestionsReady = async () => {
+      const r = await playStudentQuestion()
+      if (r === 'blocked') setSoundBlocked(true)
+    }
 
     socket.on('question:started', handleQuestionStarted)
     socket.on('question:ended', handleQuestionEnded)
@@ -193,6 +209,7 @@ function StudentRoomPage() {
     socket.on('video:progress', handleVideoProgress)
     socket.on('video:pause', handleVideoPause)
     socket.on('video:resume', handleVideoResume)
+    socket.on('questions:ready', handleQuestionsReady)
     socket.on('connect', handleReconnect)
     socket.on('room:ended', () => {
       // Show the interstitial immediately, but stagger the actual navigation across a jitter window
@@ -211,6 +228,7 @@ function StudentRoomPage() {
       socket.off('video:progress', handleVideoProgress)
       socket.off('video:pause', handleVideoPause)
       socket.off('video:resume', handleVideoResume)
+      socket.off('questions:ready', handleQuestionsReady)
       socket.off('connect', handleReconnect)
       socket.off('room:ended')
       if (resultsNavTimerRef.current) clearTimeout(resultsNavTimerRef.current)
@@ -496,6 +514,27 @@ function StudentRoomPage() {
                 {isConnected ? 'Connected' : 'Reconnecting...'}
               </span>
             </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {/* Sound on/off for the question-time chime (per device) */}
+            <SoundToggle />
+            {soundBlocked && (
+              <button
+                onClick={enableSound}
+                title="Your browser blocked the chime until you interact with the page — tap once to enable it"
+                style={{
+                  padding: '8px 14px',
+                  background: '#f59e0b',
+                  color: '#111827',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                🔔 Enable sound
+              </button>
+            )}
             <button
               onClick={leaveSession}
               disabled={hasAnsweredPoll}
@@ -514,6 +553,7 @@ function StudentRoomPage() {
             >
               Leave
             </button>
+            </div>
           </div>
 
           {/* Video (video mode) — persistent so it doesn't remount when questions come/go.

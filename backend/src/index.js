@@ -704,6 +704,14 @@ io.on('connection', (socket) => {
     socket.to(data.roomCode).emit('video:resume')
   })
 
+  // A GENERATED batch reached the teacher's review popup (auto segment or Paste & Generate; Create Q
+  // never sends this) → every student in the room gets a one-off "question time" cue. No payload, no
+  // state: late joiners are not replayed this (they see the paused video / current question instead).
+  socket.on('questions:ready', async (data) => {
+    if (!(await verifyRoomOwner(socket, data?.roomCode))) return
+    socket.to(data.roomCode).emit('questions:ready')
+  })
+
   socket.on('disconnect', () => {
     if (socket.data?._expiryTimer) { clearTimeout(socket.data._expiryTimer); socket.data._expiryTimer = null }
     const userId = connectedUsers.get(socket.id)
