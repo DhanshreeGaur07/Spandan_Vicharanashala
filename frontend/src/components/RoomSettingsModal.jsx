@@ -2,7 +2,15 @@ import React, { useState, useEffect } from 'react'
 import { getAIProviders } from '../services/questionService'
 
 const DIFFICULTY_LEVELS = ['easy', 'medium', 'hard']
-const SEGMENT_TIMES = [1, 2, 3, 5, 10, 15, 20, 30]
+// Segment Time is a free whole-minute input, 1–15 min (was a fixed 1/2/3/5/10/15/20/30 button list).
+const SEGMENT_MIN = 1
+const SEGMENT_MAX = 15
+const SEGMENT_DEFAULT = 2
+const clampSegmentTime = (v) => {
+  const n = parseInt(v, 10)
+  if (Number.isNaN(n)) return SEGMENT_DEFAULT // empty / non-numeric → default (0 must clamp to 1, not fall back)
+  return Math.min(SEGMENT_MAX, Math.max(SEGMENT_MIN, n))
+}
 
 function RoomSettingsModal({ isOpen, onClose, settings, onSave }) {
   const [localSettings, setLocalSettings] = useState(settings)
@@ -11,7 +19,8 @@ function RoomSettingsModal({ isOpen, onClose, settings, onSave }) {
 
   useEffect(() => {
     if (isOpen) {
-      setLocalSettings(settings)
+      // Clamp on open so a room saved under the old list (e.g. 20 or 30 min) shows an in-range value.
+      setLocalSettings({ ...settings, segmentTime: clampSegmentTime(settings?.segmentTime) })
       loadProviders()
     }
   }, [isOpen, settings])
@@ -102,30 +111,38 @@ function RoomSettingsModal({ isOpen, onClose, settings, onSave }) {
           }}>
             Segment Time (t)
           </label>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {SEGMENT_TIMES.map(time => (
-              <button
-                key={time}
-                onClick={() => setLocalSettings(prev => ({ ...prev, segmentTime: time }))}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  border: localSettings.segmentTime === time 
-                    ? '2px solid #3b82f6' 
-                    : '1px solid var(--border-color)',
-                  background: localSettings.segmentTime === time ? '#dbeafe' : 'transparent',
-                  color: localSettings.segmentTime === time ? '#1e40af' : 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: localSettings.segmentTime === time ? '600' : '400'
-                }}
-              >
-                {time} min
-              </button>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <input
+              type="number"
+              min={SEGMENT_MIN}
+              max={SEGMENT_MAX}
+              step="1"
+              value={localSettings.segmentTime || SEGMENT_DEFAULT}
+              onChange={(e) => setLocalSettings(prev => ({
+                ...prev,
+                segmentTime: clampSegmentTime(e.target.value)
+              }))}
+              style={{
+                width: '100px',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                fontSize: '18px',
+                fontWeight: '600',
+                textAlign: 'center'
+              }}
+            />
+            <span style={{
+              fontSize: '16px',
+              color: 'var(--text-secondary)'
+            }}>
+              minutes ({SEGMENT_MIN}-{SEGMENT_MAX})
+            </span>
           </div>
           <p style={{ margin: '8px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
-            After this time, a new segment starts and questions are auto-generated
+            Whole minutes only. After this time, a new segment starts and questions are auto-generated
           </p>
         </div>
 

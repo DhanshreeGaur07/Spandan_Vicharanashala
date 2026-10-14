@@ -20,7 +20,7 @@ const TEACHER_SECTIONS = [
   {
     icon: '⚙️', title: 'Room settings (the "Settings" button)',
     body: [
-      'Segment Time — how long each lecture/video segment runs before questions are generated from it (choose 1, 2, 3, 5, 10, 15, 20 or 30 min; default 2). Shorter segments = more frequent polls.',
+      'Segment Time — how long each lecture/video segment runs before questions are generated from it (any whole number of minutes from 1 to 15; default 2). Shorter segments = more frequent polls.',
       'Questions / Segment — how many questions to generate each segment (1 to 10; default 2).',
       'Difficulty Level — easy, medium, or hard; controls how challenging the generated questions are (default medium).',
       'Question Type Mix — the percentage split across MCQ (one correct answer), True/False, and MSQ (multiple correct answers). The three must add up to 100% (default: 100% True/False).',

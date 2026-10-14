@@ -2,7 +2,7 @@ import express from 'express'
 import { createRoom, getRoomById, getRoomByCode, getRoomsByTeacher, getRoomsByStudent, getActiveRoomsByStudent, updateRoom, deleteRoom } from '../services/roomService.js'
 import { authenticate } from '../middleware/auth.js'
 import { authorize, requireApprovedTeacher } from '../middleware/auth.js'
-import { validate, createRoomSchema } from '../middleware/validation.js'
+import { validate, createRoomSchema, roomUpdateSchema } from '../middleware/validation.js'
 import { rebuildSnapshot } from '../services/resultsSnapshot.js'
 
 const router = express.Router()
@@ -127,7 +127,7 @@ router.get('/student/active', authenticate, authorize('student'), async (req, re
 })
 
 // Update room
-router.put('/:id', authenticate, authorize('teacher'), requireApprovedTeacher, async (req, res) => {
+router.put('/:id', authenticate, authorize('teacher'), requireApprovedTeacher, validate(roomUpdateSchema), async (req, res) => {
   try {
     const room = await getRoomById(req.params.id)
     
