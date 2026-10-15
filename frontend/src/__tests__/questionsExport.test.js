@@ -13,7 +13,7 @@ describe('questionsToCsv', () => {
     const csv = questionsToCsv(insights, { answerKey: true })
     const lines = csv.trim().split('\r\n')
     expect(lines[0]).toBe('no,segment,type,question,option_A,option_B,option_C,option_D,correct,explanation,points,time_to_answer_s,responses,correct_rate_pct')
-    expect(lines[1]).toBe('1,0,TF,"A key is ""unique"", right?",True,False,,,A,By definition.,100,20,10,90')
+    expect(lines[1]).toBe('1,,TF,"A key is ""unique"", right?",True,False,,,A,By definition.,100,20,10,90')
     expect(lines[2]).toBe('2,1,MSQ,Pick all keys,"A, with comma",B,C,D,A C,,100,30,8,25')
   })
   it('student copy: no answers, explanations or stats', () => {
@@ -27,6 +27,8 @@ describe('questionsToCsv', () => {
 describe('questionsToPrintHtml', () => {
   it('answer key marks correct options and prints explanations; HTML is escaped', () => {
     const html = questionsToPrintHtml(insights, { answerKey: true })
+    expect(html).toMatch(/Q2 · Segment 1 · MSQ/) // live segments shown as stored (1 = Segment 1)
+    expect(html).not.toMatch(/Q1 · Segment/)       // segment 0 (manual) has no segment label
     expect(html).toMatch(/<title>DBMS, Lecture 3 — Questions with answer key<\/title>/)
     expect(html).toMatch(/Room ABC123/)
     expect(html).toMatch(/A key is &quot;unique&quot;, right\?/)

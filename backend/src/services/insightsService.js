@@ -226,20 +226,24 @@ export function computeRoomInsights({ room, questions, responses, members, trans
   const scores = { buckets, mean: totals.meanScore, median: totals.medianScore, max: totals.maxScore, maxPossible: totals.maxPossible }
 
   // ---- per segment ----
+  // Live recording numbers segments from 1 (RoomDetailPage currentSegment). 0 = created outside a
+  // recording (Create Q / before recording) and -1 = pasted text: both are grouped under 0
+  // ("manual / pasted"), so pasted text stays with the questions made from it.
+  const segKey = (v) => (Number.isInteger(v) && v >= 1 ? v : 0)
   const segMap = new Map()
   for (const q of questionsOut) {
-    const k = q.segmentIndex ?? -1
+    const k = segKey(q.segmentIndex)
     let s = segMap.get(k)
     if (!s) { s = { segmentIndex: k, questions: 0, responses: 0, correct: 0, words: 0, durationSec: 0 }; segMap.set(k, s) }
     s.questions += 1; s.responses += q.responses; s.correct += q.correct
   }
   for (const t of transcripts) {
-    const k = t.segmentIndex ?? -1
+    const k = segKey(t.segmentIndex)
     let s = segMap.get(k)
     if (!s) { s = { segmentIndex: k, questions: 0, responses: 0, correct: 0, words: 0, durationSec: 0 }; segMap.set(k, s) }
     s.words += num(t.wordCount); s.durationSec += num(t.duration)
   }
-  const segments = [...segMap.values()].sort((a, b) => a.segmentIndex - b.segmentIndex)
+  const segments = [...segMap.values()].sort((a, b) => (a.segmentIndex || Infinity) - (b.segmentIndex || Infinity)) // live segments 1, 2, …; manual / pasted last
     .map((s) => ({ ...s, correctRate: s.responses ? round((s.correct / s.responses) * 100, 0) : null }))
 
   const base = { room: { id: sid(room), name: room.name, code: room.code, mode: room.settings?.mode || 'normal', createdAt: start, endedAt: end }, totals, timeline, joinCurve, questions: questionsOut, scores, segments }

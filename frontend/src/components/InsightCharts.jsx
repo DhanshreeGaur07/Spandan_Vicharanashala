@@ -133,30 +133,103 @@ export function BarList({ title, subtitle, items, max = 100, unit = '%', colorFo
   )
 }
 
+// ---------- Bursts of columns on a time axis ----------
+// Polls of a segment are launched within a minute or two, so on a time axis their columns land on
+// top of each other. clusterLayout groups columns that would overlap and lays each group out side by
+// side, centred on the group's mean time (clamped inside [left, right]). It first narrows the bars
+// (down to minBar) to keep every group separate; only if that cannot fit does it merge colliding groups.
+// cx = column centres in px (any order). Returns { barWidth, lefts (per column), groups: [{ idx, start, end }] }.
+export function clusterLayout(cx, { requested = 14, minBar = 4, gap = 2, groupGap = 8, left, right }) {
+  const order = cx.map((x, i) => i).sort((a, b) => cx[a] - cx[b])
+  const place = (idx, bw) => {
+    const width = idx.length * bw + (idx.length - 1) * gap
+    const centre = idx.reduce((t, i) => t + cx[i], 0) / idx.length
+    const start = Math.min(Math.max(left, centre - width / 2), right - width)
+    return { idx, start, end: start + width }
+  }
+  const groupsFor = (bw) => { // columns closer than one bar (+gap) would overlap → same group
+    const groups = []
+    for (const i of order) {
+      const g = groups.at(-1)
+      if (g && cx[i] - cx[g.at(-1)] < bw + gap) g.push(i)
+      else groups.push([i])
+    }
+    return groups.map((g) => place(g, bw))
+  }
+  const fits = (laid) => laid.every((g, k) => g.start >= left - 0.5 && g.end <= right + 0.5 && (k === 0 || g.start >= laid[k - 1].end + groupGap - 0.5))
+  const result = (laid, bw) => {
+    const lefts = new Array(cx.length)
+    for (const g of laid) g.idx.forEach((i, j) => { lefts[i] = g.start + j * (bw + gap) })
+    return { barWidth: bw, lefts, groups: laid }
+  }
+  // 1) keep every burst as its own group, narrowing the bars if needed
+  for (let bw = requested; bw >= minBar; bw--) {
+    const laid = groupsFor(bw)
+    if (fits(laid)) return result(laid, bw)
+  }
+  // 2) still too tight: merge colliding groups (narrowest bars first that then fit)
+  for (let bw = minBar; bw >= 2; bw--) {
+    const laid = groupsFor(bw)
+    for (let k = 0; k < laid.length - 1;) {
+      if (laid[k + 1].start < laid[k].end + groupGap) {
+        laid.splice(k, 2, place([...laid[k].idx, ...laid[k + 1].idx], bw))
+        if (k > 0) k-- // the merged group may now reach back into the previous one
+      } else k++
+    }
+    if (fits(laid) || bw === 2) return result(laid, bw)
+  }
+}
+
 // ---------- Columns over a continuous x (minutes): session timeline / histogram ----------
 // xTicks (optional): [{ x, label, anchor? }] replaces the default 0 / mid / max numeric labels — e.g.
 // bucket edges in points for a histogram, where the raw x is just the bucket index.
 // minBarPx: draw at least this tall, so a 0 value still shows its colour (e.g. you were wrong on a
 // question nobody got right — a 0% bar would otherwise be invisible).
-export function Columns({ title, subtitle, points, xLabel, yLabel, height = 180, colorFor, tipFor, xMax, xTicks, minBarPx = 0, barWidth: requested = 14 }) {
+// cluster: columns that would overlap (a burst of polls launched together) are drawn side by side,
+// centred on their time; groupLabel(points) labels each group under the axis (e.g. "Q1–Q4").
+export function Columns({ title, subtitle, points, xLabel, yLabel, height = 180, colorFor, tipFor, xMax, xTicks, minBarPx = 0, cluster = false, groupLabel, barWidth: requested = 14 }) {
   const [boxRef, W] = useWidth()
-  const H = height, pl = 36, pr = 12, pt = 12, pb = 28
+  const H = height, pl = 36, pr = 12, pt = 12, pb = cluster && groupLabel ? 44 : 28
   const xmax = xMax ?? Math.max(1, ...points.map(p => p.x))
-  // Keep columns from overlapping when a long session has many polls: never wider than 2/3 of a slot.
-  const barWidth = Math.max(2, Math.min(requested, ((W - pl - pr) / Math.max(1, points.length)) * 0.66))
   const ymax = Math.max(1, ...points.map(p => p.y))
   const sx = (x) => pl + (x / xmax) * (W - pl - pr), sy = (y) => pt + (1 - y / ymax) * (H - pt - pb)
+  // Non-clustered: keep columns from overlapping when there are many: never wider than 2/3 of a slot.
+  const layout = cluster
+    ? clusterLayout(points.map(p => sx(p.x)), { requested, left: pl, right: W - pr })
+    : { barWidth: Math.max(2, Math.min(requested, ((W - pl - pr) / Math.max(1, points.length)) * 0.66)) }
+  const barWidth = layout.barWidth
+  const leftOf = (p, i) => (cluster ? layout.lefts[i] : sx(p.x) - barWidth / 2)
+  const gapHit = cluster ? 1 : Math.min(4, barWidth / 2) // widen the hover target without reaching the neighbour
   const ticks = [...new Set([0, 0.25, 0.5, 0.75, 1].map(f => Math.round(ymax * f)))]
   const xt = xTicks || [0, 0.5, 1].map(f => ({ x: xmax * f, label: `${Math.round(xmax * f)}${xLabel ? ' ' + xLabel : ''}` }))
+  // Group labels under the axis; one is skipped if it would run into the previous one.
+  const labels = []
+  if (cluster && groupLabel) {
+    let lastEnd = -Infinity
+    for (const g of layout.groups) {
+      const text = groupLabel(g.idx.map(i => points[i]))
+      const cx = (g.start + g.end) / 2, half = text.length * 3 + 4
+      const x = Math.min(Math.max(cx, pl + half), W - pr - half)
+      if (x - half >= lastEnd) { labels.push({ x, text }); lastEnd = x + half }
+    }
+  }
   return (
     <Frame title={title} subtitle={subtitle} height={H} boxRef={boxRef}>
       <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title} style={{ display: 'block' }}>
         {ticks.map((t, i) => <g key={i}><line x1={pl} x2={W - pr} y1={sy(t)} y2={sy(t)} stroke={COLORS.grid} strokeWidth="1" /><text x={pl - 6} y={sy(t) + 4} textAnchor="end" style={font}>{t}</text></g>)}
         {points.map((p, i) => {
-          const h = Math.max(minBarPx, sy(0) - sy(p.y)), x = sx(p.x) - barWidth / 2, y = sy(0) - h
-          return <rect key={i} x={x} y={y} width={barWidth} height={Math.max(0, h)} rx={Math.min(4, barWidth / 2)} ry={Math.min(4, barWidth / 2)} fill={colorFor ? colorFor(p) : COLORS.s1} {...tip(tipFor ? tipFor(p) : [p.label || `x ${p.x}`, `${p.y}`])} />
+          const h = Math.max(minBarPx, sy(0) - sy(p.y)), x = leftOf(p, i), y = sy(0) - h
+          const lines = tipFor ? tipFor(p) : [p.label || `x ${p.x}`, `${p.y}`]
+          return (
+            <g key={i} {...tip(lines)}>
+              {/* full-height transparent hit area: short (or zero) columns are still easy to hover / tap */}
+              <rect x={x - gapHit} y={pt} width={barWidth + 2 * gapHit} height={Math.max(0, sy(0) - pt)} fill="transparent" />
+              <rect x={x} y={y} width={barWidth} height={Math.max(0, h)} rx={Math.min(4, barWidth / 2)} ry={Math.min(4, barWidth / 2)} fill={colorFor ? colorFor(p) : COLORS.s1} />
+            </g>
+          )
         })}
         <line x1={pl} x2={W - pr} y1={sy(0)} y2={sy(0)} stroke={COLORS.grid} strokeWidth="1" />
+        {labels.map((l, i) => <text key={i} x={l.x} y={sy(0) + 14} textAnchor="middle" style={{ ...font, fontSize: 10, fontWeight: 600 }}>{l.text}</text>)}
         {xt.map((t, i) => <text key={i} x={sx(t.x)} y={H - 8} textAnchor={t.anchor || anchorFor(i, xt.length)} style={font}>{t.label}</text>)}
         {yLabel && <text x={pl} y={10} style={font}>{yLabel}</text>}
       </svg>

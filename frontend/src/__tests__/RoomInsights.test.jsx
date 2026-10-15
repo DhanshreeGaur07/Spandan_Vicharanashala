@@ -115,3 +115,13 @@ describe('RoomInsights on a phone', () => {
     expect(container.querySelector('[data-tour="results-heatmap"]')).not.toBeNull()
   })
 })
+
+describe('RoomInsights segments', () => {
+  it('shows live segments as stored (1 = Segment 1) and groups 0 as "Manual / pasted"', () => {
+    const segs = [{ segmentIndex: 1, questions: 2, responses: 10, correct: 7, words: 300, durationSec: 600, correctRate: 70 }, { segmentIndex: 0, questions: 1, responses: 5, correct: 1, words: 0, durationSec: 0, correctRate: 20 }]
+    render(<RoomInsights insights={{ ...teacher, segments: segs }} isTeacher isMobile={false} />)
+    expect(screen.getByText('Segment 1')).toBeInTheDocument()
+    expect(screen.queryByText('Segment 2')).toBeNull()
+    expect(screen.getByText('Manual / pasted')).toBeInTheDocument()
+  })
+})

@@ -134,7 +134,7 @@ describe('results page UI pieces', () => {
 describe('student chart fixes', () => {
   it('a 0% column still shows its colour when minBarPx is set (wrong answer on a question nobody got right)', () => {
     const { container } = render(<Columns points={[{ x: 0.5, y: 0 }, { x: 1.5, y: 80 }]} xMax={2} minBarPx={4} colorFor={(p) => (p.y ? 'green' : 'red')} />)
-    const bars = [...container.querySelectorAll('rect')]
+    const bars = [...container.querySelectorAll('rect')].filter((r) => r.getAttribute('fill') !== 'transparent')
     expect(Number(bars[0].getAttribute('height'))).toBe(4)
     expect(bars[0].getAttribute('fill')).toBe('red')
   })
@@ -143,5 +143,58 @@ describe('student chart fixes', () => {
     const { container } = render(<StepLine points={[{ x: 1, y: 90 }]} tipFor={(p) => [`Q${p.x}: ${p.y} points so far`]} />)
     fireEvent.pointerMove(container.querySelector('circle'), { clientX: 5, clientY: 5, pointerType: 'mouse' })
     expect(document.querySelector('[data-chart-tip]').textContent).toBe('Q1: 90 points so far')
+  })
+})
+
+describe('timeline bursts (clusterLayout)', () => {
+  const { clusterLayout } = require('../components/InsightCharts')
+  const noOverlap = ({ lefts, barWidth }) => {
+    const s = [...lefts].sort((a, b) => a - b)
+    return s.every((x, i) => i === 0 || x >= s[i - 1] + barWidth - 0.01)
+  }
+  it('polls launched together sit side by side, centred on their time; separate bursts stay apart', () => {
+    // 5 bursts of 4 polls each, ~1 px apart inside a burst (the overlap seen in production)
+    const cx = []
+    for (const t of [300, 520, 740, 960, 1180]) for (let k = 0; k < 4; k++) cx.push(t + k)
+    const L = clusterLayout(cx, { requested: 14, left: 36, right: 1500 })
+    expect(L.groups).toHaveLength(5)
+    expect(L.barWidth).toBe(14)
+    expect(noOverlap(L)).toBe(true)
+    const g = L.groups[0]
+    expect(Math.abs((g.start + g.end) / 2 - 301.5)).toBeLessThan(0.01) // centred on the burst's mean time
+  })
+  it('on a phone it narrows the bars but keeps each burst as its own group', () => {
+    const cx = Array.from({ length: 21 }, (_, i) => 60 + Math.floor(i / 4) * 40 + i * 0.3)
+    const L = clusterLayout(cx, { requested: 14, left: 36, right: 280 })
+    expect(L.groups).toHaveLength(6)
+    expect(noOverlap(L)).toBe(true)
+    expect(Math.min(...L.lefts)).toBeGreaterThanOrEqual(36 - 0.5)
+    expect(Math.max(...L.lefts) + L.barWidth).toBeLessThanOrEqual(280 + 0.5)
+    expect(L.barWidth).toBeLessThan(14)
+  })
+  it('well-separated polls are untouched (one column per group, at its own time)', () => {
+    const L = clusterLayout([100, 300, 500], { requested: 14, left: 36, right: 600 })
+    expect(L.groups).toHaveLength(3)
+    expect(L.lefts).toEqual([93, 293, 493])
+  })
+  it('merges bursts only when even the narrowest bars cannot keep them apart', () => {
+    const cx = Array.from({ length: 30 }, (_, i) => 50 + Math.floor(i / 10) * 20 + i * 0.1)
+    const L = clusterLayout(cx, { requested: 14, left: 36, right: 200 })
+    expect(L.groups.length).toBeLessThan(3)
+    expect(noOverlap(L)).toBe(true)
+  })
+})
+
+describe('timeline: polls nobody answered', () => {
+  it('get a visible stub and a full-height hover target with a "no one answered" tooltip', () => {
+    const { container } = render(<Columns points={[{ x: 5, y: 0, label: 'Q7' }, { x: 20, y: 30, label: 'Q8' }]} xMax={40} minBarPx={4}
+      colorFor={(p) => (p.y ? 'green' : 'grey')} tipFor={(p) => [p.label, p.y ? `${p.y} answered` : 'no one answered']} />)
+    const groups = [...container.querySelectorAll('svg g')].filter((g) => g.querySelectorAll('rect').length === 2)
+    const [hit, bar] = groups[0].querySelectorAll('rect')
+    expect(bar.getAttribute('fill')).toBe('grey')
+    expect(Number(bar.getAttribute('height'))).toBe(4)
+    expect(Number(hit.getAttribute('height'))).toBeGreaterThan(100) // hover target spans the plot height
+    fireEvent.pointerMove(hit, { clientX: 5, clientY: 5, pointerType: 'mouse' })
+    expect(document.querySelector('[data-chart-tip]').textContent).toBe('Q7' + 'no one answered')
   })
 })

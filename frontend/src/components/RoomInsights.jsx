@@ -31,10 +31,10 @@ export default function RoomInsights({ insights, isTeacher, isMobile, onExportRe
     const rated = questions.filter(q => q.correctRate !== null && q.responses >= Math.min(minN, Math.max(1, totals.responders)))
     const hardest = rated.length ? rated.reduce((a, q) => (q.correctRate < a.correctRate ? q : a)) : null
     if (hardest) out.push({ icon: '🧗', label: 'Hardest question', value: `Q${hardest.n} · ${hardest.correctRate}% correct` })
-    const segs = segments.filter(x => x.segmentIndex >= 0 && x.correctRate !== null && x.responses > 0)
+    const segs = segments.filter(x => x.segmentIndex >= 1 && x.correctRate !== null && x.responses > 0)
     if (segs.length > 1) {
       const best = segs.reduce((a, x) => (x.correctRate > a.correctRate ? x : a))
-      out.push({ icon: '🎯', label: 'Strongest segment', value: `Segment ${best.segmentIndex + 1} · ${best.correctRate}%` })
+      out.push({ icon: '🎯', label: 'Strongest segment', value: `Segment ${best.segmentIndex} · ${best.correctRate}%` })
     }
     if (totals.questions) out.push({ icon: '🙌', label: 'Answered every poll', value: `${totals.answeredAll} of ${plural(totals.joined, 'student')}` })
     return out
@@ -102,12 +102,14 @@ export default function RoomInsights({ insights, isTeacher, isMobile, onExportRe
       <SectionLabel id="res-engagement">Engagement</SectionLabel>
       {/* ---- timeline + joins ---- */}
       <div data-tour="results-timeline" className="insight-card" style={card(isMobile)}>
-        <SectionHeader icon="🕒" tint="#3b82f6" title="Session timeline" hint={<>Each column is a poll at the minute it was launched; height = how many students answered. Colour = correct-rate band.</>} />
+        <SectionHeader icon="🕒" tint="#3b82f6" title="Session timeline" hint={<>Each column is a poll; polls launched together sit side by side at the minute they went out. Height = how many students answered. Colour = correct-rate band.</>} />
         {timeline.length ? (
           <>
-            <Columns points={timeline.map(t => ({ x: t.minute ?? 0, y: t.responders, label: `Q${t.n}`, rate: t.correctRate }))} xMax={sessionEnd} xLabel="min" yLabel="answered"
-              colorFor={(p) => rateBand(p.rate).color} tipFor={(p) => [p.label, `${p.y} answered · ${p.rate ?? '—'}% correct · minute ${p.x}`]} />
-            <Legend items={[{ color: COLORS.good, label: '≥70% correct' }, { color: COLORS.warning, label: '40–69%' }, { color: COLORS.critical, label: '<40%' }]} />
+            <Columns points={timeline.map(t => ({ x: t.minute ?? 0, y: t.responders, n: t.n, label: `Q${t.n}`, rate: t.correctRate }))} xMax={sessionEnd} xLabel="min" yLabel="answered"
+              cluster groupLabel={(ps) => { const ns = ps.map(p => p.n).sort((a, b) => a - b); return ns.length > 1 ? `Q${ns[0]}–Q${ns.at(-1)}` : `Q${ns[0]}` }}
+              minBarPx={4} colorFor={(p) => (p.y ? rateBand(p.rate).color : COLORS.muted)}
+              tipFor={(p) => [p.label, p.y ? `${p.y} answered · ${p.rate ?? '—'}% correct · minute ${p.x}` : `no one answered · minute ${p.x}`]} />
+            <Legend items={[{ color: COLORS.good, label: '≥70% correct' }, { color: COLORS.warning, label: '40–69%' }, { color: COLORS.critical, label: '<40%' }, ...(timeline.some(t => !t.responders) ? [{ color: COLORS.muted, label: 'no answers' }] : [])]} />
           </>
         ) : <p style={hint}>No polls were launched.</p>}
         {joinCurve.length > 0 && (
@@ -157,7 +159,7 @@ export default function RoomInsights({ insights, isTeacher, isMobile, onExportRe
               <thead><tr>{['Segment', 'Questions', 'Answers', 'Correct rate', 'Transcript words', 'Segment length'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
               <tbody>{segments.map(s => (
                 <tr key={s.segmentIndex}>
-                  <td style={td}>{s.segmentIndex >= 0 ? `Segment ${s.segmentIndex + 1}` : 'Unsegmented'}</td>
+                  <td style={td}>{s.segmentIndex >= 1 ? `Segment ${s.segmentIndex}` : 'Manual / pasted'}</td>
                   <td style={td}>{s.questions}</td><td style={td}>{s.responses}</td>
                   <td style={td}><span style={{ color: rateBand(s.correctRate).color, fontWeight: 700 }}>{s.correctRate ?? '—'}{s.correctRate !== null ? '%' : ''}</span> <span style={sm}>{s.correctRate !== null ? rateBand(s.correctRate).label : ''}</span></td>
                   <td style={td}>{s.words || '—'}</td><td style={td}>{s.durationSec ? `${Math.round(s.durationSec / 60)} min` : '—'}</td>

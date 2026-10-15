@@ -18,7 +18,7 @@ export function questionsToCsv(insights, { answerKey = true } = {}) {
   const head = ['no', 'segment', 'type', 'question', ...Array.from({ length: maxOpts }, (_, i) => `option_${LETTERS[i]}`)]
   if (answerKey) head.push('correct', 'explanation', 'points', 'time_to_answer_s', 'responses', 'correct_rate_pct')
   const rows = qs.map((q) => {
-    const row = [q.n, q.segmentIndex ?? '', q.type, q.text, ...Array.from({ length: maxOpts }, (_, i) => q.options[i]?.text ?? '')]
+    const row = [q.n, q.segmentIndex >= 1 ? q.segmentIndex : '', q.type, q.text, ...Array.from({ length: maxOpts }, (_, i) => q.options[i]?.text ?? '')]
     if (answerKey) row.push(q.options.map((o, i) => (o.isCorrect ? LETTERS[i] : null)).filter(Boolean).join(' '), q.explanation || '', q.points ?? '', q.timeToAnswer ?? '', q.responses ?? '', q.correctRate ?? '')
     return row
   })
@@ -32,7 +32,7 @@ export function questionsToPrintHtml(insights, { answerKey = true } = {}) {
   const title = `${r.name || 'Session'} — ${answerKey ? 'Questions with answer key' : 'Questions (student copy)'}`
   const body = qs.map((q) => `
     <section class="q">
-      <div class="meta">Q${q.n}${q.segmentIndex !== null && q.segmentIndex !== undefined ? ` · Segment ${q.segmentIndex + 1}` : ''} · ${q.type}${answerKey && q.points ? ` · ${q.points} pts` : ''}${answerKey && q.timeToAnswer ? ` · ${q.timeToAnswer} s` : ''}${answerKey && q.responses ? ` · ${q.responses} answered, ${q.correctRate}% correct` : ''}</div>
+      <div class="meta">Q${q.n}${q.segmentIndex >= 1 ? ` · Segment ${q.segmentIndex}` : ''} · ${q.type}${answerKey && q.points ? ` · ${q.points} pts` : ''}${answerKey && q.timeToAnswer ? ` · ${q.timeToAnswer} s` : ''}${answerKey && q.responses ? ` · ${q.responses} answered, ${q.correctRate}% correct` : ''}</div>
       <div class="text">${esc(q.text)}</div>
       <ol class="opts">${q.options.map((o, i) => `<li class="${answerKey && o.isCorrect ? 'correct' : ''}"><span class="letter">${LETTERS[i]}.</span> ${esc(o.text)}${answerKey && o.isCorrect ? ' <span class="tick">✓</span>' : ''}</li>`).join('')}</ol>
       ${answerKey && q.explanation ? `<div class="expl"><strong>Explanation:</strong> ${esc(q.explanation)}</div>` : ''}

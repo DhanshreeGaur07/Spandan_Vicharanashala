@@ -77,9 +77,11 @@ export async function loadInsightsDocs(roomId) {
   return { room, questions, responses, members, transcripts, usersById: new Map(users.map((u) => [String(u._id), u])) }
 }
 
-// A room's version = its updatedAt. Room edits bump it (timestamps: true), so a cached build of an
-// older version is never served.
-export const roomVersion = (room) => (room?.updatedAt ? String(new Date(room.updatedAt).getTime()) : '')
+// A cached build is valid only for the same room version AND the same payload format. Room edits bump
+// updatedAt (timestamps: true); PAYLOAD_VERSION is bumped whenever computeInsights' output changes, so
+// a deploy never serves a bundle built by older code (Redis keeps it up to TTL_MS otherwise).
+const PAYLOAD_VERSION = 2 // 2: segments numbered as stored (1-based), 0/-1 grouped as manual / pasted
+export const roomVersion = (room) => `p${PAYLOAD_VERSION}:${room?.updatedAt ? new Date(room.updatedAt).getTime() : ''}`
 
 // Every view of the room, serialised once.
 export function buildBundle(docs) {

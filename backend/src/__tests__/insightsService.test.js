@@ -5,9 +5,9 @@ const min = (m) => new Date(T0.getTime() + m * 60000)
 const room = { _id: 'room1', name: 'Smoke', code: 'ABC123', settings: { mode: 'normal' }, createdAt: T0, endedAt: min(50) }
 // 3 questions: Q1 easy TF (everyone right), Q2 MCQ discriminating, Q3 hard MCQ with a dead distractor
 const questions = [
-  { _id: 'q1', type: 'TF', question: 'Q1', options: [{ text: 'True', isCorrect: true }, { text: 'False' }], segmentIndex: 0, points: 100, timeToAnswer: 20, createdAt: min(5), closeAt: min(5.5) },
-  { _id: 'q2', type: 'MCQ', question: 'Q2', options: [{ text: 'A' }, { text: 'B', isCorrect: true }, { text: 'C' }, { text: 'D' }], segmentIndex: 1, points: 100, timeToAnswer: 30, explanation: 'B because', createdAt: min(20), closeAt: min(20.5) },
-  { _id: 'q3', type: 'MCQ', question: 'Q3', options: [{ text: 'A', isCorrect: true }, { text: 'B' }, { text: 'C' }, { text: 'D' }], segmentIndex: 2, points: 100, timeToAnswer: 30, createdAt: min(40), closeAt: min(40.5) },
+  { _id: 'q1', type: 'TF', question: 'Q1', options: [{ text: 'True', isCorrect: true }, { text: 'False' }], segmentIndex: 1, points: 100, timeToAnswer: 20, createdAt: min(5), closeAt: min(5.5) },
+  { _id: 'q2', type: 'MCQ', question: 'Q2', options: [{ text: 'A' }, { text: 'B', isCorrect: true }, { text: 'C' }, { text: 'D' }], segmentIndex: 2, points: 100, timeToAnswer: 30, explanation: 'B because', createdAt: min(20), closeAt: min(20.5) },
+  { _id: 'q3', type: 'MCQ', question: 'Q3', options: [{ text: 'A', isCorrect: true }, { text: 'B' }, { text: 'C' }, { text: 'D' }], segmentIndex: 3, points: 100, timeToAnswer: 30, createdAt: min(40), closeAt: min(40.5) },
 ]
 // 10 students; strong ones (s1-s5) get Q2 right, weak ones wrong. Q3: 2 right, 8 wrong, nobody picks D.
 const students = Array.from({ length: 10 }, (_, i) => `s${i + 1}`)
@@ -19,7 +19,7 @@ students.forEach((s, i) => {
   if (i < 8) responses.push({ questionId: 'q3', studentId: s, selectedOption: i < 2 ? 0 : (i % 2 ? 1 : 2), isCorrect: i < 2, responseTime: 25, points: i < 2 ? 70 : 0 })
 })
 const members = [...students.map((s, i) => ({ studentId: s, joinedAt: min(i) })), { studentId: 's11', joinedAt: min(30) }] // s11 joined, never answered
-const transcripts = [{ segmentIndex: 0, wordCount: 300, duration: 120 }, { segmentIndex: 1, wordCount: 500, duration: 120 }, { segmentIndex: 2, wordCount: 200, duration: 100 }]
+const transcripts = [{ segmentIndex: 1, wordCount: 300, duration: 120 }, { segmentIndex: 2, wordCount: 500, duration: 120 }, { segmentIndex: 3, wordCount: 200, duration: 100 }]
 const usersById = new Map(students.map((s, i) => [s, { name: `Student ${i + 1}`, email: `${s}@x.com` }]))
 
 describe('computeInsights', () => {
@@ -66,7 +66,7 @@ describe('computeInsights', () => {
   it('score distribution and segments', () => {
     expect(T.scores.buckets.reduce((a, b) => a + b.count, 0)).toBe(10)
     expect(T.scores.max).toBe(90 + 80 + 70)
-    expect(T.segments.map(s => s.segmentIndex)).toEqual([0, 1, 2])
+    expect(T.segments.map(s => s.segmentIndex)).toEqual([1, 2, 3]) // live segments are numbered from 1, shown as-is
     expect(T.segments[1]).toMatchObject({ questions: 1, responses: 10, correctRate: 50, words: 500, durationSec: 120 })
   })
 
@@ -177,5 +177,15 @@ describe('anonymous session, teacher view', () => {
   it('a named session is unchanged', () => {
     expect(named.heatmap.rows[0].name).toMatch(/^Student /)
     expect(named.heatmap.rows.some((r) => r.name.startsWith('Anonymous'))).toBe(false)
+  })
+})
+
+describe('segments', () => {
+  it('questions made outside a recording (0) and pasted text (-1) form one "manual / pasted" group, listed last', () => {
+    const qs = [...questions, { _id: 'qm', type: 'TF', question: 'Manual', options: [{ text: 'T', isCorrect: true }, { text: 'F' }], segmentIndex: 0, points: 100, timeToAnswer: 20, createdAt: min(45) }]
+    const tr = [...transcripts, { segmentIndex: -1, wordCount: 120, duration: 0 }]
+    const T = computeInsights({ room, questions: qs, responses, members, transcripts: tr, usersById, forTeacher: true })
+    expect(T.segments.map(s => s.segmentIndex)).toEqual([1, 2, 3, 0])
+    expect(T.segments[3]).toMatchObject({ questions: 1, words: 120 })
   })
 })
