@@ -6,6 +6,7 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
   overflow-x: hidden;
+  overflow-x: clip; /* clip, not hidden: hidden makes <body> a scroll container, which breaks position: sticky */
 }
 
 * {
@@ -14,6 +15,7 @@ body {
 
 html {
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Theme Variables - Light (default) */
@@ -89,6 +91,11 @@ html {
   background: #2563eb;
 }
 
+/* Scroll boxes inside cards (results insights): same look as the global scrollbar, and the same
+   8px thickness on the HORIZONTAL bar too (the global rule only sets width). */
+.thin-scroll { scrollbar-width: thin; }
+.thin-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+
 /* Dark mode scrollbar */
 [data-theme="dark"] ::-webkit-scrollbar-track {
   background: #1f2937;
@@ -100,7 +107,7 @@ html {
 
 /* ---- Modern base (redesign) ---- */
 html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-body { overflow-x: hidden; }
+body { overflow-x: hidden; overflow-x: clip; }
 
 /* Visible, accessible focus ring using the accent */
 *:focus-visible {
@@ -113,3 +120,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: no-preference) {
   a, button { transition: background-color .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease; }
 }
+/* Results page (components/InsightUI.jsx): a gentle lift on hover for tiles and cards. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .insight-tile, .insight-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .insight-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(16,24,40,0.10), 0 3px 8px rgba(16,24,40,0.06); }
+  .insight-card:hover { border-color: color-mix(in srgb, var(--accent) 28%, var(--border-color)); }
+}
+/* Results-page tile rows: whole rows only (cols from TileGrid); 2 per row in narrow windows. */
+.insight-tiles { grid-template-columns: repeat(var(--tile-cols, 4), minmax(0, 1fr)); }
+@media (max-width: 900px) { .insight-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

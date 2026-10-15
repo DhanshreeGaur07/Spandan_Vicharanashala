@@ -64,8 +64,11 @@ export const TOURS = {
   results: {
     role: 'teacher', path: /^\/teacher\/room\/[^/]+\/results\/?$/,
     steps: [
-      { target: 'results-stats', title: 'The session at a glance', body: 'Total questions, responses and students, the average score and the number of correct answers.' },
-      { target: 'question-analysis', title: 'Question by question', body: 'Each question with its correct answer and the share of the class that got it right — the quickest way to spot a concept that needs another pass.' },
+      { target: 'results-stats', title: 'The session at a glance', body: 'Students, questions and responses, participation, the class correct rate, the median response time, the score spread and the session length.' },
+      { target: 'results-download', title: 'Take the questions with you', body: 'Download every question with its options as a PDF or CSV — as an answer key with explanations, or as a student copy without answers. Responses CSV exports every answer.' },
+      { target: 'results-timeline', title: 'How the session unfolded', body: 'One column per poll at the minute it was launched; height is how many answered, colour is the correct-rate band. Below it, the join curve shows late joiners.' },
+      { target: 'item-analysis', title: 'Question by question', body: 'Difficulty, discrimination, median time and flags for each question. Click a row for the answer distribution, the explanation and who got it wrong.' },
+      { target: 'results-heatmap', title: 'Every student, every question', body: 'One cell per student per question — correct, wrong or no answer — sorted by points. The quickest way to see who needs a word.' },
     ],
   },
   admin: {
@@ -120,8 +123,9 @@ export const TOURS = {
   's-results': {
     role: 'student', path: /^\/student\/room\/[^/]+\/results\/?$/,
     steps: [
-      { target: 'results-stats', title: 'How you did', body: 'Your rank, average score and correct answers for the session.' },
-      { target: 'question-analysis', title: 'Question by question', body: 'Each question with the correct answer and the one you chose.' },
+      { target: 'results-stats', title: 'How you did', body: 'Your rank, points, correct rate, median time, best streak and how many you answered, each next to the class figure. If the leaderboard is anonymous, your rank stays hidden.' },
+      { target: 'results-timeline', title: 'You against the class', body: 'Your points through the session, and each question you got right or wrong next to how the class did.' },
+      { target: 'question-analysis', title: 'Question by question', body: 'Your result, time and points on every question next to the class. Filter to Wrong or Not answered, and click a row for the correct answer, your pick and the explanation.' },
     ],
   },
 }

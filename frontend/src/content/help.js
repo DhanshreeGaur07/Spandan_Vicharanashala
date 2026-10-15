@@ -160,8 +160,14 @@ export const HELP_SECTIONS = [
     routes: [/^\/teacher\/room\/[^/]+\/results\/?$/],
     body: [
       'When you click End Room, Spandan compiles the session results. Reopen them any time from Room History → View Results.',
-      'Summary cards: Total Questions, Total Responses, Total Students, Average Score and Correct Answers. Below, the Question-wise Analysis lists every question with its correct answer and the class correct rate — ideal for spotting concepts that need another pass.',
-      'Each student gets a personal results page: their Rank, Average Score, Correct Answers and a per-question breakdown with their own answer highlighted.',
+      'Summary tiles: Students (everyone who joined or answered), Questions, Responses, Participation, Class correct rate, Median response time, Score spread (median / mean points) and Session length.',
+      'Session timeline: one column per poll at the minute it was launched, height = students who answered, colour = correct-rate band; below it the cumulative join curve shows late joiners.',
+      'Participation funnel (joined → answered one → answered half → answered all) and the score distribution (two humps = two groups in the room).',
+      'Correct rate per question (sorted) and Speed vs accuracy (median response time against correct rate: slow-and-wrong = the class struggled, fast-and-wrong = a misconception). By lecture segment shows where the class got lost.',
+      'Question-wise analysis: every question with difficulty (share correct), discrimination (point-biserial — above 0.3 good, below 0.2 weak), median time and flags (too easy, hard, low discrimination, dead distractor). Click a row for the answer distribution, the explanation and who got it wrong.',
+      'Students × questions heatmap: one cell per student per question (correct, wrong, no answer), sorted by points.',
+      '⬇ Download questions exports every question with its options as PDF (via the print dialog → Save as PDF) or CSV, either as an Answer key (✓ on correct options, explanations, stats) or a Student copy (a handout without answers). ⬇ Responses CSV downloads every answer.',
+      'Each student gets a personal results page: their rank (hidden when the leaderboard is anonymous), points, correct rate and median time against the class, and a per-question breakdown with their own answer highlighted. No other student is named.',
     ],
   },
   {
@@ -251,7 +257,8 @@ export const HELP_SECTIONS = [
     id: 's-results', role: S, icon: '📈', title: 'Your results',
     routes: [/^\/student\/room\/[^/]+\/results\/?$/],
     body: [
-      'When the teacher ends the room you are taken to your personal results: your Rank, Average Score, Correct Answers and a per-question breakdown with your own answer highlighted.',
+      'When the teacher ends the room you are taken to your personal results. The tiles at the top show your rank (hidden if the leaderboard is anonymous), points, correct rate, median time, best streak and how many questions you answered, each next to the class figure.',
+      'Below the tiles: your points through the session; you vs the class per question; the Question-wise analysis (your result, time and points next to the class figures for every question, filterable to Wrong or Not answered; click a row for the correct answer, your pick, how the class answered and the explanation); and where you sit in the class score distribution. No other student is named.',
       'Reopen any past session\'s results from Room History.',
     ],
   },

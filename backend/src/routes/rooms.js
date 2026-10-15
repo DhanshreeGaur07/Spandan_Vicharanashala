@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth.js'
 import { authorize, requireApprovedTeacher } from '../middleware/auth.js'
 import { validate, createRoomSchema, roomUpdateSchema } from '../middleware/validation.js'
 import { rebuildSnapshot } from '../services/resultsSnapshot.js'
+import { prewarmInsights } from '../services/insightsCache.js'
 
 const router = express.Router()
 
@@ -153,6 +154,8 @@ router.put('/:id', authenticate, authorize('teacher'), requireApprovedTeacher, v
       // shared cache instead of each triggering full-room aggregations (the end-session stampede).
       // Fire-and-forget + no-op when Redis is off; never blocks or fails the room-end response.
       rebuildSnapshot(room._id).catch((e) => console.error('[rooms] snapshot pre-warm failed:', e.message))
+      // Same for the results-page insights: computed once here (works with or without Redis).
+      prewarmInsights(room._id).catch((e) => console.error('[rooms] insights pre-warm failed:', e.message))
     }
     
     res.json({ message: 'Room updated successfully', room: updatedRoom })
