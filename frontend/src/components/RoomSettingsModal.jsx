@@ -232,10 +232,10 @@ function RoomSettingsModal({ isOpen, onClose, settings, onSave }) {
                   padding: '10px 16px',
                   borderRadius: '8px',
                   border: localSettings.difficulty === level 
-                    ? '2px solid #3b82f6' 
+                    ? '2px solid var(--accent)' 
                     : '1px solid var(--border-color)',
                   background: localSettings.difficulty === level ? '#dbeafe' : 'transparent',
-                  color: localSettings.difficulty === level ? '#1e40af' : 'var(--text-primary)',
+                  color: localSettings.difficulty === level ? 'var(--accent)' : 'var(--text-primary)',
                   cursor: 'pointer',
                   fontSize: '14px',
                   fontWeight: localSettings.difficulty === level ? '600' : '400',
@@ -444,9 +444,9 @@ function RoomSettingsModal({ isOpen, onClose, settings, onSave }) {
                     flex: 1,
                     padding: '10px 16px',
                     borderRadius: '8px',
-                    border: active ? '2px solid #3b82f6' : '1px solid var(--border-color)',
+                    border: active ? '2px solid var(--accent)' : '1px solid var(--border-color)',
                     background: active ? '#dbeafe' : 'transparent',
-                    color: active ? '#1e40af' : 'var(--text-primary)',
+                    color: active ? 'var(--accent)' : 'var(--text-primary)',
                     cursor: 'pointer',
                     fontSize: '14px',
                     fontWeight: active ? '600' : '400'
@@ -522,9 +522,9 @@ function RoomSettingsModal({ isOpen, onClose, settings, onSave }) {
                           flex: 1,
                           padding: '10px 16px',
                           borderRadius: '8px',
-                          border: active ? '2px solid #3b82f6' : '1px solid var(--border-color)',
+                          border: active ? '2px solid var(--accent)' : '1px solid var(--border-color)',
                           background: active ? '#dbeafe' : 'transparent',
-                          color: active ? '#1e40af' : 'var(--text-primary)',
+                          color: active ? 'var(--accent)' : 'var(--text-primary)',
                           cursor: 'pointer',
                           fontSize: '14px',
                           fontWeight: active ? '600' : '400'
@@ -552,7 +552,7 @@ function RoomSettingsModal({ isOpen, onClose, settings, onSave }) {
             padding: '12px',
             borderRadius: '10px',
             border: 'none',
-            background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+            background: 'var(--accent-gradient)',
             color: 'white',
             fontSize: '14px',
             fontWeight: '600',

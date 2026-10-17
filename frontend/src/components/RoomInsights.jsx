@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { BarList, Columns, StepLine, Scatter, OptionBar, Funnel, Heatmap, Legend, COLORS, rateBand } from './InsightCharts'
+import { BarList, Columns, StepLine, Scatter, OptionBar, Funnel, Heatmap, Legend, COLORS, rateBand, textTone } from './InsightCharts'
 import { questionsToCsv, questionsToPrintHtml, downloadText, openPrintWindow, safeFilename } from '../lib/questionsExport'
 import { RT_BUCKET_LABELS, scoreTicks, rtTicks, formatDuration } from '../lib/insightsFormat'
 import { StatTile, TileGrid, SectionHeader, SectionLabel, HeroSummary, SectionNav, cardStyle, QPill, QuestionBox } from './InsightUI'
@@ -66,7 +66,7 @@ export default function RoomInsights({ insights, isTeacher, isMobile, onExportRe
       )} id="res-overview">Overview</SectionLabel>
       <TileGrid isMobile={isMobile} cols={4}>
         {[
-          { icon: '🧑‍🎓', label: 'Students', value: `${totals.joined}`, sub: `${totals.responders} answered at least one`, tint: '#3b82f6' },
+          { icon: '🧑‍🎓', label: 'Students', value: `${totals.joined}`, sub: `${totals.responders} answered at least one`, tint: 'var(--accent)' },
           { icon: '📝', label: 'Questions', value: `${totals.questions}`, sub: `${totals.maxPossible} points possible`, tint: '#8b5cf6' },
           { icon: '💬', label: 'Responses', value: `${totals.responses}`, sub: totals.responders ? `${Math.round(totals.responses / totals.responders * 10) / 10} per answering student` : 'no answers', tint: '#0ea5e9' },
           { icon: '🙋', label: 'Participation', value: totals.participationRate !== null ? `${totals.participationRate}%` : '—', sub: `${totals.responders} of ${totals.joined} students answered`, tint: '#14b8a6', progress: totals.participationRate },
@@ -102,7 +102,7 @@ export default function RoomInsights({ insights, isTeacher, isMobile, onExportRe
       <SectionLabel id="res-engagement">Engagement</SectionLabel>
       {/* ---- timeline + joins ---- */}
       <div data-tour="results-timeline" className="insight-card" style={card(isMobile)}>
-        <SectionHeader icon="🕒" tint="#3b82f6" title="Session timeline" hint={<>Each column is a poll; polls launched together sit side by side at the minute they went out. Height = how many students answered. Colour = correct-rate band.</>} />
+        <SectionHeader icon="🕒" tint="var(--accent)" title="Session timeline" hint={<>Each column is a poll; polls launched together sit side by side at the minute they went out. Height = how many students answered. Colour = correct-rate band.</>} />
         {timeline.length ? (
           <>
             <Columns points={timeline.map(t => ({ x: t.minute ?? 0, y: t.responders, n: t.n, label: `Q${t.n}`, rate: t.correctRate }))} xMax={sessionEnd} xLabel="min" yLabel="answered"
@@ -161,7 +161,7 @@ export default function RoomInsights({ insights, isTeacher, isMobile, onExportRe
                 <tr key={s.segmentIndex}>
                   <td style={td}>{s.segmentIndex >= 1 ? `Segment ${s.segmentIndex}` : 'Manual / pasted'}</td>
                   <td style={td}>{s.questions}</td><td style={td}>{s.responses}</td>
-                  <td style={td}><span style={{ color: rateBand(s.correctRate).color, fontWeight: 700 }}>{s.correctRate ?? '—'}{s.correctRate !== null ? '%' : ''}</span> <span style={sm}>{s.correctRate !== null ? rateBand(s.correctRate).label : ''}</span></td>
+                  <td style={td}><span style={{ color: textTone(rateBand(s.correctRate).color), fontWeight: 700 }}>{s.correctRate ?? '—'}{s.correctRate !== null ? '%' : ''}</span> <span style={sm}>{s.correctRate !== null ? rateBand(s.correctRate).label : ''}</span></td>
                   <td style={td}>{s.words || '—'}</td><td style={td}>{s.durationSec ? `${Math.round(s.durationSec / 60)} min` : '—'}</td>
                 </tr>))}</tbody>
             </table>
@@ -188,7 +188,7 @@ export default function RoomInsights({ insights, isTeacher, isMobile, onExportRe
                         <td style={isMobile ? tdM : td}><QPill n={q.n} open={isOpen} compact={isMobile} /></td>
                         {!isMobile && <td style={td}>{q.type}</td>}
                         <td style={isMobile ? tdM : td}>{q.responses}{isTeacher && q.noAnswer ? <span style={sm}> (+{q.noAnswer}{isMobile ? '' : ' silent'})</span> : null}</td>
-                        <td style={isMobile ? tdM : td}><span style={{ color: band.color, fontWeight: 700 }}>{q.correctRate ?? '—'}{q.correctRate !== null ? '%' : ''}</span>{!isMobile && <span style={sm}> {q.correctRate !== null ? band.label : ''}</span>}</td>
+                        <td style={isMobile ? tdM : td}><span style={{ color: textTone(band.color), fontWeight: 700 }}>{q.correctRate ?? '—'}{q.correctRate !== null ? '%' : ''}</span>{!isMobile && <span style={sm}> {q.correctRate !== null ? band.label : ''}</span>}</td>
                         {!isMobile && <td style={td}>{q.difficulty ?? '—'}</td>}
                         {isMobile ? <td style={tdM}>{q.medianResponseTime !== null ? `${q.medianResponseTime}s` : '—'}</td> : null}
                         <td style={isMobile ? tdM : td}>{q.discrimination ?? '—'}</td>
@@ -235,7 +235,7 @@ export default function RoomInsights({ insights, isTeacher, isMobile, onExportRe
       {isTeacher && heatmap && heatmap.rows.length > 0 && <SectionLabel id="res-students">Students</SectionLabel>}
       {isTeacher && heatmap && heatmap.rows.length > 0 && (
         <div data-tour="results-heatmap" className="insight-card" style={card(isMobile)}>
-          <SectionHeader icon="🧩" tint="#3b82f6" title="Students × questions" hint={<>Each cell is one student's result on one question. Sorted by total points. The CSV export has the full table.</>} />
+          <SectionHeader icon="🧩" tint="var(--accent)" title="Students × questions" hint={<>Each cell is one student's result on one question. Sorted by total points. The CSV export has the full table.</>} />
           {insights.anonymity && (
             <p style={{ ...hint, marginTop: '-8px' }}>This session's leaderboard is anonymous, so names are hidden here too{insights.anonymity.percent > 0 ? `, except the lowest-scoring ${insights.anonymity.percent}% (as on your leaderboard)` : ''}.</p>
           )}
@@ -249,7 +249,7 @@ export default function RoomInsights({ insights, isTeacher, isMobile, onExportRe
   )
 }
 
-const btn = (primary) => ({ padding: '9px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: primary ? '#3b82f6' : 'var(--nav-hover)', color: primary ? '#fff' : 'var(--text-primary)', fontSize: '13px', fontWeight: 600, cursor: 'pointer' })
+const btn = (primary) => ({ padding: '9px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: primary ? 'var(--accent-solid)' : 'var(--nav-hover)', color: primary ? '#fff' : 'var(--text-primary)', fontSize: '13px', fontWeight: 600, cursor: 'pointer' })
 const tbl = { width: '100%', borderCollapse: 'collapse', fontSize: '13px', color: 'var(--text-primary)' }
 const th = { textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--border-color)', fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }
 const td = { padding: '8px 10px', borderBottom: '1px solid var(--border-color)', verticalAlign: 'top', whiteSpace: 'nowrap' }

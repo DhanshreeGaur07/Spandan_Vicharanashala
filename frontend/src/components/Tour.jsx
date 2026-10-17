@@ -97,7 +97,7 @@ export default function Tour() {
       <div aria-hidden="true" style={{
         position: 'fixed', zIndex: 9991, pointerEvents: 'none',
         top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2,
-        borderRadius: '10px', boxShadow: '0 0 0 9999px rgba(0,0,0,0.55), 0 0 0 3px #3b82f6',
+        borderRadius: '10px', boxShadow: '0 0 0 9999px rgba(0,0,0,0.55), 0 0 0 3px var(--accent)',
         transition: 'top .2s, left .2s, width .2s, height .2s'
       }} />
       <div role="dialog" aria-label={`Tour step ${step + 1} of ${steps.length}: ${current.title}`} style={{
@@ -114,7 +114,7 @@ export default function Tour() {
           {step > 0 && (
             <button onClick={back} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '13px' }}>Back</button>
           )}
-          <button onClick={next} style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>{isLast ? 'Done' : 'Next'}</button>
+          <button onClick={next} style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: 'var(--accent-solid)', color: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>{isLast ? 'Done' : 'Next'}</button>
         </div>
       </div>
     </>

@@ -62,7 +62,7 @@ export const HELP_SECTIONS = [
     ],
   },
   {
-    id: 'creating-a-room', role: T, icon: '➕', title: 'Creating a room',
+    id: 'creating-a-room', role: T, icon: '＋', title: 'Creating a room',
     routes: [/^\/teacher\/create-room\/?$/],
     body: [
       'A room is one live session that students join. Create one from the dashboard panel or the Create Room page.',

@@ -2,9 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../stores/authStore'
 import Sidebar from '../components/Sidebar'
-import ThemeToggle from '../components/ThemeToggle'
-import HelpButton from '../components/HelpButton'
-import ProfileDropdown from '../components/ProfileDropdown'
+import { PageHeader, pageWash } from '../components/AppUI'
 import useIsMobile from '../hooks/useIsMobile'
 import { adminApi } from '../lib/api'
 
@@ -78,26 +76,10 @@ export default function AdminPage() {
         marginLeft: 'var(--sidebar-width, 240px)', maxWidth: '100%', boxSizing: 'border-box'
       }}>
         {/* Header */}
-        <header style={{
-          background: 'var(--header-bg)', color: 'white',
-          padding: isMobile ? '20px 16px' : '24px 32px',
-          paddingLeft: isMobile ? '64px' : '32px', boxSizing: 'border-box'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h1 style={{ margin: 0, fontSize: isMobile ? '22px' : '26px', fontWeight: 700, letterSpacing: '-0.02em' }}>Teacher Approvals</h1>
-              <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>Review and approve teacher account requests</p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <HelpButton />
-              <ThemeToggle />
-              <ProfileDropdown />
-            </div>
-          </div>
-        </header>
+        <PageHeader isMobile={isMobile} icon="🛡️" title="Teacher Approvals" subtitle="Review and approve teacher account requests" />
 
         {/* Content */}
-        <div style={{ flex: 1, padding: isMobile ? '16px' : '32px', maxWidth: '100%', boxSizing: 'border-box' }}>
+        <div style={{ flex: 1, padding: isMobile ? '16px' : '28px 32px 32px', maxWidth: '100%', boxSizing: 'border-box', background: pageWash }}>
           <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
             {tabBtn('pending', 'Pending')}
             {tabBtn('approved', 'Approved')}

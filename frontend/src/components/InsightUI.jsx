@@ -34,7 +34,7 @@ export function StatTile({ icon, label, value, sub, tint = 'var(--accent)', tone
         }}>{icon}</span>
         <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)', lineHeight: 1.25 }}>{label}</span>
       </div>
-      <div style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1, color: tone || 'var(--text-primary)', overflowWrap: 'anywhere' }}>{value}</div>
+      <div style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1, color: tone ? `color-mix(in srgb, ${tone}, white var(--tone-lift))` : 'var(--text-primary)', overflowWrap: 'anywhere' }}>{value}</div>
       {pct !== null && (
         <div role="presentation" style={{ height: 6, borderRadius: 999, background: tintBg('var(--text-secondary)', 14), overflow: 'hidden' }}>
           <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: progressColor || tint }} />

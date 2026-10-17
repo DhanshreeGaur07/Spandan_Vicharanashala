@@ -8,6 +8,8 @@ export const COLORS = {
   good: '#0ca30c', warning: '#fab219', serious: '#ec835a', critical: '#d03b3b',
   grid: 'var(--border-color)', text: 'var(--text-primary)', muted: 'var(--text-secondary)', surface: 'var(--bg-card)'
 }
+// A status colour used as TEXT (e.g. "87%", "✓ correct"): lifted toward white in dark mode (--tone-lift)
+export const textTone = (c) => `color-mix(in srgb, ${c}, white var(--tone-lift))`
 // correct-rate band → status colour + label (never colour alone)
 export const rateBand = (rate) => rate === null || rate === undefined ? { color: COLORS.muted, label: 'n/a' }
   : rate >= 70 ? { color: COLORS.good, label: 'good' } : rate >= 40 ? { color: COLORS.warning, label: 'mixed' } : { color: COLORS.critical, label: 'weak' }

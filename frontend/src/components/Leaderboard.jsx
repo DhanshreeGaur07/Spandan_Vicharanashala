@@ -189,7 +189,7 @@ const Leaderboard = ({ roomId, token, socket, userId }) => {
                      isCurrentUser ? 'linear-gradient(135deg, #dbeafe, #bfdbfe)' : 'var(--bg-primary)',
         borderRadius: '10px',
         border: entry.rank <= 3 ? `2px solid ${entry.rank === 1 ? '#f59e0b' : entry.rank === 2 ? '#9ca3af' : '#d97706'}` :
-               isCurrentUser ? '2px solid #3b82f6' : '1px solid var(--border-color)'
+               isCurrentUser ? '2px solid var(--accent)' : '1px solid var(--border-color)'
       }}>
         <span style={{
           width: '28px',

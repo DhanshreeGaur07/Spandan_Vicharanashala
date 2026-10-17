@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Columns, StepLine, Legend, OptionBar, COLORS, rateBand } from './InsightCharts'
+import { Columns, StepLine, Legend, OptionBar, COLORS, rateBand, textTone } from './InsightCharts'
 import { scoreTicks, questionTicks, formatDuration } from '../lib/insightsFormat'
 import { StatTile, TileGrid, SectionHeader, SectionLabel, HeroSummary, SectionNav, cardStyle, QPill, QuestionBox } from './InsightUI'
 
@@ -64,7 +64,7 @@ export default function StudentInsights({ insights, isMobile }) {
         </div>
         {/* ---- you vs class per question ---- */}
         <div className="insight-card" style={card(isMobile)}>
-          <SectionHeader icon="🆚" tint="#3b82f6" title="You vs the class, per question" hint={<>Column = share of the class that got it right. Colour = your result on that question.</>} />
+          <SectionHeader icon="🆚" tint="var(--accent)" title="You vs the class, per question" hint={<>Column = share of the class that got it right. Colour = your result on that question.</>} />
           {me.perQuestion.length ? (
             <>
               <Columns points={me.perQuestion.map(q => ({ x: q.n - 0.5, y: q.classCorrectRate ?? 0, label: `Q${q.n}`, mine: q.isCorrect, answered: q.answered }))} xMax={me.perQuestion.length} xTicks={questionTicks(me.perQuestion.length)} minBarPx={4} barWidth={22} height={170} yLabel="% correct"
@@ -82,7 +82,7 @@ export default function StudentInsights({ insights, isMobile }) {
         <SectionHeader icon="🔍" tint="#0ea5e9" title="Question-wise analysis" hint={<>Your result, time and points on every question next to the class figures. Click a question number to see the question, its options, the correct answer, your pick, how the class answered and the explanation.</>} />
         <div role="tablist" aria-label="Filter questions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
           {[['all', 'All'], ['wrong', 'Wrong'], ['skipped', 'Not answered']].map(([k, label]) => (
-            <button key={k} role="tab" aria-selected={filter === k} onClick={() => { setFilter(k); setOpen(null) }} style={{ padding: '6px 12px', borderRadius: '999px', border: '1px solid ' + (filter === k ? '#3b82f6' : 'var(--border-color)'), background: filter === k ? 'rgba(59,130,246,0.12)' : 'transparent', color: 'var(--text-primary)', fontSize: '13px', fontWeight: filter === k ? 700 : 500, cursor: 'pointer' }}>
+            <button key={k} role="tab" aria-selected={filter === k} onClick={() => { setFilter(k); setOpen(null) }} style={{ padding: '6px 12px', borderRadius: '999px', border: '1px solid ' + (filter === k ? 'var(--accent)' : 'var(--border-color)'), background: filter === k ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent', color: 'var(--text-primary)', fontSize: '13px', fontWeight: filter === k ? 700 : 500, cursor: 'pointer' }}>
               {label} ({counts[k]})
             </button>
           ))}
@@ -102,10 +102,10 @@ export default function StudentInsights({ insights, isMobile }) {
                     <React.Fragment key={q.id}>
                       <tr onClick={() => setOpen(isOpen ? null : q.id)} aria-expanded={isOpen} style={{ cursor: 'pointer', background: isOpen ? 'var(--nav-hover)' : 'transparent' }}>
                         <td style={isMobile ? tdM : td}><QPill n={q.n} open={isOpen} compact={isMobile} /></td>
-                        <td style={isMobile ? tdM : td}>{!q.answered ? <span style={sm}>{isMobile ? 'skipped' : 'not answered'}</span> : q.isCorrect ? <span style={{ color: COLORS.good, fontWeight: 700 }}>✓ correct</span> : <span style={{ color: COLORS.critical, fontWeight: 700 }}>✗ wrong</span>}</td>
+                        <td style={isMobile ? tdM : td}>{!q.answered ? <span style={sm}>{isMobile ? 'skipped' : 'not answered'}</span> : q.isCorrect ? <span style={{ color: textTone(COLORS.good), fontWeight: 700 }}>✓ correct</span> : <span style={{ color: textTone(COLORS.critical), fontWeight: 700 }}>✗ wrong</span>}</td>
                         <td style={isMobile ? tdM : td}>{q.responseTime !== null ? `${q.responseTime}s` : '—'}{!isMobile && q.responseTime !== null && q.classMedianResponseTime !== null ? <span style={sm}> {q.responseTime < q.classMedianResponseTime ? '· faster' : q.responseTime > q.classMedianResponseTime ? '· slower' : ''}</span> : null}</td>
                         {!isMobile && <td style={td}>{q.classMedianResponseTime !== null ? `${q.classMedianResponseTime}s` : '—'}</td>}
-                        <td style={isMobile ? tdM : td}><span style={{ color: band.color, fontWeight: 700 }}>{q.classCorrectRate ?? '—'}{q.classCorrectRate !== null ? '%' : ''}</span>{!isMobile && <span style={sm}> {q.classCorrectRate !== null ? band.label : ''}</span>}</td>
+                        <td style={isMobile ? tdM : td}><span style={{ color: textTone(band.color), fontWeight: 700 }}>{q.classCorrectRate ?? '—'}{q.classCorrectRate !== null ? '%' : ''}</span>{!isMobile && <span style={sm}> {q.classCorrectRate !== null ? band.label : ''}</span>}</td>
                         <td style={isMobile ? tdM : td}>{isMobile ? `${q.points}/${q.maxPoints ?? '—'}` : `${q.points} / ${q.maxPoints ?? '—'}`}</td>
                       </tr>
                       {isOpen && (

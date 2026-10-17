@@ -4,9 +4,7 @@ import useAuthStore from '../stores/authStore'
 import useSocketStore from '../stores/socketStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
-import ThemeToggle from '../components/ThemeToggle'
-import HelpButton from '../components/HelpButton'
-import ProfileDropdown from '../components/ProfileDropdown'
+import { PageHeader } from '../components/AppUI'
 import Leaderboard from '../components/Leaderboard'
 import ErrorBoundary from '../components/ErrorBoundary'
 import SoundToggle from '../components/SoundToggle'
@@ -384,7 +382,7 @@ function StudentRoomPage() {
               width: '48px',
               height: '48px',
               border: '4px solid var(--border-color)',
-              borderTopColor: '#3b82f6',
+              borderTopColor: 'var(--accent)',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 16px'
@@ -419,7 +417,7 @@ function StudentRoomPage() {
               style={{
                 marginTop: '16px',
                 padding: '12px 24px',
-                background: '#3b82f6',
+                background: 'var(--accent-solid)',
                 color: 'white',
                 border: 'none',
                 borderRadius: '10px',
@@ -449,7 +447,7 @@ function StudentRoomPage() {
               width: '48px',
               height: '48px',
               border: '4px solid var(--border-color)',
-              borderTopColor: '#3b82f6',
+              borderTopColor: 'var(--accent)',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 16px'
@@ -474,31 +472,13 @@ function StudentRoomPage() {
       <Sidebar user={user} />
       
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: 'var(--sidebar-width, 240px)', minWidth: 0, maxWidth: 'calc(100vw - var(--sidebar-width, 240px))', overflowX: 'hidden' }}>
-        {/* Header */}
-        <header style={{
-          background: 'var(--header-bg)',
-          color: 'white',
-          padding: isMobile ? '20px 16px' : '24px 32px',
-          paddingLeft: isMobile ? '64px' : '32px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>Room: {room.name}</h1>
-              <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>Code: {room.code}</p>
-            </div>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <HelpButton />
-              <ThemeToggle />
-              <ProfileDropdown />
-            </div>
-          </div>
-        </header>
+        <PageHeader isMobile={isMobile} icon={room.settings?.mode === 'video' ? '🎬' : '🎙️'} eyebrow="Live session" title={room.name} subtitle={<>Code <strong style={{ letterSpacing: '0.1em' }}>{room.code}</strong></>} />
 
         {/* Content */}
         <div style={{ flex: 1, padding: isMobile ? '16px' : '32px', width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
           {showHint && (
             <div role="note" style={{
-              background: 'var(--bg-card)', border: '1px solid #93c5fd', borderLeft: '4px solid #3b82f6',
+              background: 'var(--bg-card)', border: '1px solid color-mix(in srgb, var(--accent) 45%, transparent)', borderLeft: '4px solid var(--accent)',
               borderRadius: '12px', padding: '12px 16px', marginBottom: '16px',
               display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-primary)', fontSize: '14px'
             }}>
@@ -783,7 +763,7 @@ function StudentRoomPage() {
                 <div style={{
                   width: '80px',
                   height: '80px',
-                  background: '#eff6ff',
+                  background: 'var(--tint-info-bg)',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -829,8 +809,8 @@ function StudentRoomPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span style={{
                               padding: '2px 10px',
-                              background: q.answered ? '#d1fae5' : (q.resultPending ? '#eff6ff' : '#fee2e2'),
-                              color: q.answered ? '#059669' : (q.resultPending ? '#3b82f6' : '#dc2626'),
+                              background: q.answered ? 'var(--tint-success-bg)' : (q.resultPending ? 'var(--tint-info-bg)' : 'var(--tint-danger-bg)'),
+                              color: q.answered ? 'var(--tint-success-fg)' : (q.resultPending ? 'var(--tint-info-fg)' : 'var(--tint-danger-fg)'),
                               borderRadius: '6px',
                               fontSize: '12px',
                               fontWeight: '600'
@@ -839,8 +819,8 @@ function StudentRoomPage() {
                             </span>
                             <span style={{
                               padding: '2px 10px',
-                              background: '#eff6ff',
-                              color: '#3b82f6',
+                              background: 'var(--tint-info-bg)',
+                              color: 'var(--tint-info-fg)',
                               borderRadius: '6px',
                               fontSize: '12px',
                               fontWeight: '600'
@@ -849,8 +829,8 @@ function StudentRoomPage() {
                             </span>
                             <span style={{
                               padding: '2px 10px',
-                              background: '#fef3c7',
-                              color: '#d97706',
+                              background: 'var(--tint-warn-bg)',
+                              color: 'var(--tint-warn-fg)',
                               borderRadius: '6px',
                               fontSize: '12px',
                               fontWeight: '600'
@@ -862,7 +842,7 @@ function StudentRoomPage() {
                           {q.resultPending && q.answered && (
                             <span style={{
                               padding: '4px 12px',
-                              background: '#3b82f6',
+                              background: 'var(--accent-solid)',
                               color: 'white',
                               borderRadius: '6px',
                               fontSize: '12px',
@@ -874,7 +854,7 @@ function StudentRoomPage() {
                           {!q.resultPending && q.answered && q.isCorrect && (
                             <span style={{
                               padding: '4px 12px',
-                              background: '#10b981',
+                              background: 'var(--success-solid)',
                               color: 'white',
                               borderRadius: '6px',
                               fontSize: '12px',
@@ -920,31 +900,30 @@ function StudentRoomPage() {
                               // Live poll: NEVER reveal the correct option. Only mark what the student
                               // picked, in blue — the correct/incorrect result comes after it closes.
                               if (q.answered && isSelected) {
-                                bgColor = '#eff6ff'
-                                borderColor = '#3b82f6'
-                                letterBg = '#3b82f6'
-                                // The highlight bg is a fixed light pastel, so text must be a dark
-                                // accent (not var(--text-primary), which is white in dark mode and
-                                // would wash out over the pastel). Mirrors the teacher side.
-                                textColor = '#1e40af'
+                                bgColor = 'var(--tint-info-bg)'
+                                borderColor = 'var(--tint-info-border)'
+                                letterBg = 'var(--accent)'
+                                // Theme-aware tint + matching text (pale + dark text in light mode,
+                                // translucent + light text in dark mode).
+                                textColor = 'var(--tint-info-fg)'
                                 label = ' (Your answer)'
                               }
                             } else if (q.answered && isSelected && isCorrect) {
-                              bgColor = '#d1fae5'
-                              borderColor = '#059669'
+                              bgColor = 'var(--tint-success-bg)'
+                              borderColor = 'var(--tint-success-border)'
                               letterBg = '#059669'
-                              textColor = '#065f46'
+                              textColor = 'var(--tint-success-fg)'
                               label = ' (Your correct answer)'
                             } else if (q.answered && isSelected && !isCorrect) {
-                              bgColor = '#fee2e2'
-                              borderColor = '#dc2626'
-                              textColor = '#991b1b'
+                              bgColor = 'var(--tint-danger-bg)'
+                              borderColor = 'var(--tint-danger-border)'
+                              textColor = 'var(--tint-danger-fg)'
                               label = ' (Your wrong answer)'
                             } else if (!q.answered && isCorrect) {
-                              bgColor = '#d1fae5'
-                              borderColor = '#059669'
+                              bgColor = 'var(--tint-success-bg)'
+                              borderColor = 'var(--tint-success-border)'
                               letterBg = '#059669'
-                              textColor = '#065f46'
+                              textColor = 'var(--tint-success-fg)'
                               label = ' (Correct answer)'
                             } else if (isCorrect) {
                               letterBg = '#059669'
@@ -990,12 +969,12 @@ function StudentRoomPage() {
                         
                         {/* Live poll: result withheld until it closes. Otherwise, missed-question notice. */}
                         {q.resultPending && (
-                          <p style={{ fontSize: '13px', color: '#3b82f6', margin: 0, fontStyle: 'italic' }}>
+                          <p style={{ fontSize: '13px', color: 'var(--accent)', margin: 0, fontStyle: 'italic' }}>
                             ⏳ Result will be shown once this poll closes
                           </p>
                         )}
                         {!q.resultPending && !q.answered && (
-                          <p style={{ fontSize: '13px', color: '#dc2626', margin: 0, fontStyle: 'italic' }}>
+                          <p style={{ fontSize: '13px', color: 'var(--tint-danger-fg)', margin: 0, fontStyle: 'italic' }}>
                             ⚠️ You did not answer this question
                           </p>
                         )}

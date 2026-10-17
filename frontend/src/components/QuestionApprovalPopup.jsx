@@ -119,7 +119,7 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
 
   const getTypeColor = (type) => {
     switch (type) {
-      case 'MCQ': return '#3b82f6'
+      case 'MCQ': return 'var(--accent)'
       case 'TF': return '#10b981'
       case 'MSQ': return '#8b5cf6'
       default: return '#6b7280'
@@ -234,10 +234,10 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
                 padding: '4px 12px',
                 borderRadius: '20px',
                 border: index === currentIndex 
-                  ? '2px solid #3b82f6' 
+                  ? '2px solid var(--accent)' 
                   : '1px solid var(--border-color)',
                 background: index === currentIndex ? '#dbeafe' : 'transparent',
-                color: index === currentIndex ? '#1e40af' : 'var(--text-secondary)',
+                color: index === currentIndex ? 'var(--accent)' : 'var(--text-secondary)',
                 fontSize: '12px',
                 cursor: 'pointer'
               }}
@@ -263,7 +263,7 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
             display: 'inline-block',
             padding: '4px 12px',
             borderRadius: '20px',
-            background: getTypeColor(currentQuestion.type) + '20',
+            background: `color-mix(in srgb, ${getTypeColor(currentQuestion.type)} 13%, transparent)`,
             color: getTypeColor(currentQuestion.type),
             fontSize: '12px',
             fontWeight: '600',
@@ -358,7 +358,7 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
                   padding: '14px',
                   borderRadius: '12px',
                   border: 'none',
-                  background: 'linear-gradient(135deg, #3b82f6, #1e40af)',
+                  background: 'var(--accent-gradient)',
                   color: 'white',
                   fontSize: '14px',
                   fontWeight: '600',
@@ -450,7 +450,7 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
           <div style={{
             height: '100%',
             width: `${((currentIndex + 1) / pendingQuestions.length) * 100}%`,
-            background: 'linear-gradient(90deg, #3b82f6, #10b981)',
+            background: 'linear-gradient(90deg, var(--accent), #10b981)',
             transition: 'width 0.3s ease'
           }} />
         </div>

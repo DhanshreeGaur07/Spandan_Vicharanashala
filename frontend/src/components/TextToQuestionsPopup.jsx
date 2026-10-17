@@ -30,7 +30,7 @@ function TextToQuestionsPopup({ isOpen, onClose, onGenerate, roomSettings, isGen
     const mix = roomSettings.questionTypeMix || { MCQ: 0, TF: 100, MSQ: 0 }
     return (
       <>
-        <span style={{ color: '#3b82f6', fontWeight: '600' }}>MCQ: {mix.MCQ}%</span>
+        <span style={{ color: 'var(--accent)', fontWeight: '600' }}>MCQ: {mix.MCQ}%</span>
         <span style={{ color: '#6b7280' }}> | </span>
         <span style={{ color: '#10b981', fontWeight: '600' }}>TF: {mix.TF}%</span>
         <span style={{ color: '#6b7280' }}> | </span>
@@ -169,9 +169,9 @@ function TextToQuestionsPopup({ isOpen, onClose, onGenerate, roomSettings, isGen
                 flex: 1,
                 padding: '10px 16px',
                 borderRadius: '10px',
-                border: mode === 'MIXED' ? '2px solid #3b82f6' : '2px solid var(--border-color)',
-                background: mode === 'MIXED' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                color: mode === 'MIXED' ? '#3b82f6' : 'var(--text-secondary)',
+                border: mode === 'MIXED' ? '2px solid var(--accent)' : '2px solid var(--border-color)',
+                background: mode === 'MIXED' ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent',
+                color: mode === 'MIXED' ? 'var(--accent)' : 'var(--text-secondary)',
                 fontSize: '13px',
                 fontWeight: '600',
                 cursor: 'pointer',
@@ -261,7 +261,7 @@ function TextToQuestionsPopup({ isOpen, onClose, onGenerate, roomSettings, isGen
             borderRadius: '12px',
             border: 'none',
             background: text.trim().length >= 50 && !isGenerating
-              ? 'linear-gradient(135deg, #3b82f6, #1e40af)'
+              ? 'var(--accent-gradient)'
               : 'var(--border-color)',
             color: text.trim().length >= 50 && !isGenerating ? 'white' : 'var(--text-secondary)',
             fontSize: '14px',

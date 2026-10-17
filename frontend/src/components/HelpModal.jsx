@@ -58,8 +58,8 @@ export default function HelpModal() {
         key={s.id} onClick={() => setSelected(s.id)} aria-current={active ? 'true' : undefined}
         style={{
           display: 'flex', alignItems: 'center', gap: '10px', width: isMobile ? 'auto' : '100%', textAlign: 'left',
-          padding: isMobile ? '8px 12px' : '10px 12px', borderRadius: '8px', border: '1px solid ' + (active ? '#3b82f6' : 'transparent'),
-          background: active ? 'rgba(59,130,246,0.12)' : 'transparent', color: 'var(--text-primary)',
+          padding: isMobile ? '8px 12px' : '10px 12px', borderRadius: '8px', border: '1px solid ' + (active ? 'var(--accent)' : 'transparent'),
+          background: active ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent', color: 'var(--text-primary)',
           fontSize: '14px', fontWeight: active ? 700 : 500, cursor: 'pointer', whiteSpace: isMobile ? 'nowrap' : 'normal', flexShrink: 0
         }}
       >

@@ -5,9 +5,7 @@ import useSocketStore from '../stores/socketStore'
 import useRoomStore from '../stores/roomStore'
 import useThemeStore from '../stores/themeStore'
 import Sidebar from '../components/Sidebar'
-import ThemeToggle from '../components/ThemeToggle'
-import HelpButton from '../components/HelpButton'
-import ProfileDropdown from '../components/ProfileDropdown'
+import { PageHeader } from '../components/AppUI'
 import QuestionApprovalPopup from '../components/QuestionApprovalPopup'
 import TextQuestionApprovalPopup from '../components/TextQuestionApprovalPopup'
 import CreateQuestionOverlay from '../components/CreateQuestionOverlay'
@@ -35,7 +33,7 @@ function RoomDetailPage() {
   const isMobile = useIsMobile()
   // Room code + participant count use a deep blue on light, but that reads too dark on the dark card;
   // switch to white in dark mode for clean, high contrast.
-  const codeColor = isDark ? '#ffffff' : '#1e40af'
+  const codeColor = isDark ? '#ffffff' : 'var(--accent)'
 
   const [room, setRoom] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -1214,7 +1212,7 @@ function RoomDetailPage() {
               width: '48px',
               height: '48px',
               border: '4px solid var(--border-color)',
-              borderTopColor: '#3b82f6',
+              borderTopColor: 'var(--accent)',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 16px'
@@ -1236,7 +1234,7 @@ function RoomDetailPage() {
             <button onClick={() => navigate('/teacher')} style={{
               marginTop: '16px',
               padding: '12px 24px',
-              background: '#3b82f6',
+              background: 'var(--accent-solid)',
               color: 'white',
               border: 'none',
               borderRadius: '10px',
@@ -1257,19 +1255,7 @@ function RoomDetailPage() {
       <Sidebar user={user} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: 'var(--sidebar-width, 240px)', minWidth: 0, maxWidth: 'calc(100vw - var(--sidebar-width, 240px))', overflowX: 'hidden' }}>
-        {/* Header */}
-        <header style={{ background: 'var(--header-bg)', color: 'white', padding: isMobile ? '16px 16px' : '16px 32px', paddingLeft: isMobile ? '64px' : '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{room.name}</h1>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <HelpButton />
-              <ThemeToggle />
-              <ProfileDropdown />
-            </div>
-          </div>
-        </header>
+        <PageHeader isMobile={isMobile} icon={room.settings?.mode === 'video' ? '🎬' : '🎙️'} eyebrow={room.endedAt ? 'Teacher console · ended' : 'Teacher console · live'} title={room.name} />
 
         {/* Content */}
         <div style={{ flex: 1, padding: isMobile ? '16px' : '24px 32px', width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
@@ -1320,7 +1306,7 @@ function RoomDetailPage() {
               </span>
               <button onClick={copyRoomCode} disabled={isEnded} style={{
                 padding: '4px 12px',
-                background: isEnded ? '#9ca3af' : (copied ? '#10b981' : '#3b82f6'),
+                background: isEnded ? '#9ca3af' : (copied ? '#10b981' : 'var(--accent-solid)'),
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
@@ -1423,7 +1409,7 @@ function RoomDetailPage() {
                 onClick={() => { setPastedText(''); setShowTextToQuestions(true) }}
                 style={{
                   padding: '8px 16px',
-                  background: '#10b981',
+                  background: 'var(--success-solid)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
@@ -1445,7 +1431,7 @@ function RoomDetailPage() {
                 onClick={() => setShowCreateQuestion(true)}
                 style={{
                   padding: '8px 16px',
-                  background: '#3b82f6',
+                  background: 'var(--accent-solid)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
@@ -1831,7 +1817,7 @@ function RoomDetailPage() {
                     disabled={isGeneratingQuestions || !transcript || !generateQEnabled}
                     style={{
                       padding: '4px 12px',
-                      background: '#3b82f6',
+                      background: 'var(--accent-solid)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '6px',
@@ -1882,8 +1868,8 @@ function RoomDetailPage() {
               {generatedQuestions.length > 0 && (
                 <span style={{
                   padding: '2px 10px',
-                  background: '#d1fae5',
-                  color: '#059669',
+                  background: 'var(--tint-success-bg)',
+                  color: 'var(--tint-success-fg)',
                   borderRadius: '12px',
                   fontSize: '12px',
                   fontWeight: '600'
@@ -1910,7 +1896,7 @@ function RoomDetailPage() {
                       width: '28px',
                       height: '28px',
                       borderRadius: '50%',
-                      background: '#3b82f6',
+                      background: 'var(--accent-solid)',
                       color: 'white',
                       display: 'flex',
                       alignItems: 'center',
@@ -1928,8 +1914,8 @@ function RoomDetailPage() {
                           borderRadius: '4px',
                           fontSize: '10px',
                           fontWeight: '600',
-                          background: q.type === 'MCQ' ? '#3b82f620' : q.type === 'TF' ? '#10b9820' : '#8b5cf620',
-                          color: q.type === 'MCQ' ? '#3b82f6' : q.type === 'TF' ? '#10b982' : '#8b5cf6'
+                          background: q.type === 'MCQ' ? 'color-mix(in srgb, var(--accent) 13%, transparent)' : q.type === 'TF' ? '#10b98120' : '#8b5cf620',
+                          color: q.type === 'MCQ' ? 'var(--accent)' : q.type === 'TF' ? '#10b982' : '#8b5cf6'
                         }}>
                           {q.type}
                         </span>
@@ -1938,8 +1924,8 @@ function RoomDetailPage() {
                           borderRadius: '4px',
                           fontSize: '10px',
                           fontWeight: '600',
-                          background: '#fef3c7',
-                          color: '#92400e'
+                          background: 'var(--tint-warn-bg)',
+                          color: 'var(--tint-warn-fg)'
                         }}>
                           {q.points || 100} pts
                         </span>
@@ -1953,14 +1939,14 @@ function RoomDetailPage() {
                           return (
                             <div key={optIdx} style={{
                               padding: '8px 12px',
-                              background: opt.isCorrect ? '#d1fae5' : 'var(--bg-secondary)',
-                              border: `2px solid ${opt.isCorrect ? '#059669' : 'var(--border-color)'}`,
+                              background: opt.isCorrect ? 'var(--tint-success-bg)' : 'var(--bg-secondary)',
+                              border: `2px solid ${opt.isCorrect ? 'var(--tint-success-border)' : 'var(--border-color)'}`,
                               borderRadius: '6px',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '8px',
                               fontSize: '13px',
-                              color: opt.isCorrect ? '#059669' : 'var(--text-primary)'
+                              color: opt.isCorrect ? 'var(--tint-success-fg)' : 'var(--text-primary)'
                             }}>
                               <span style={{
                                 width: '22px',
@@ -1994,8 +1980,8 @@ function RoomDetailPage() {
                         borderRadius: '6px',
                         fontSize: '11px',
                         fontWeight: '600',
-                        background: (answerCounts[q._id] || 0) > 0 ? '#d1fae5' : '#fef3c7',
-                        color: (answerCounts[q._id] || 0) > 0 ? '#059669' : '#92400e'
+                        background: (answerCounts[q._id] || 0) > 0 ? 'var(--tint-success-bg)' : 'var(--tint-warn-bg)',
+                        color: (answerCounts[q._id] || 0) > 0 ? 'var(--tint-success-fg)' : 'var(--tint-warn-fg)'
                       }}>
                         {answerCounts[q._id] || 0}/{totalParticipants}
                       </span>

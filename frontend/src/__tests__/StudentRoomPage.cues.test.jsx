@@ -58,7 +58,7 @@ beforeEach(() => {
 describe('StudentRoomPage — question-time cue', () => {
   it('plays the chime on questions:ready, once per event, and installs the autoplay unlock', async () => {
     mount()
-    await screen.findByText('Room: Smoke room')
+    await screen.findByRole('heading', { name: 'Smoke room' })
     await act(async () => { fire('room:joined', { roomCode: 'ABC123' }) })
     expect(installUnlockOnInteraction).toHaveBeenCalled()
     expect(mockSocket.on).toHaveBeenCalledWith('questions:ready', expect.any(Function))
@@ -73,7 +73,7 @@ describe('StudentRoomPage — question-time cue', () => {
   it('shows "Enable sound" when the browser blocked the chime; one tap enables it', async () => {
     playStudentQuestion.mockResolvedValueOnce('blocked')
     mount()
-    await screen.findByText('Room: Smoke room')
+    await screen.findByRole('heading', { name: 'Smoke room' })
     await act(async () => { fire('room:joined', { roomCode: 'ABC123' }) })
 
     await act(async () => { fire('questions:ready') })
@@ -86,7 +86,7 @@ describe('StudentRoomPage — question-time cue', () => {
 
   it('renders the 🔔 toggle in the Connected/Leave row, left of Leave', async () => {
     mount()
-    await screen.findByText('Room: Smoke room')
+    await screen.findByRole('heading', { name: 'Smoke room' })
     const leave = screen.getByText('Leave')
     const bell = screen.getByRole('button', { name: /Sound on/ })
     expect(bell).toHaveTextContent('🔔')
@@ -99,7 +99,7 @@ describe('StudentRoomPage — question-time cue', () => {
 
   it('unsubscribes the cue listener on unmount', async () => {
     const { unmount } = mount()
-    await screen.findByText('Room: Smoke room')
+    await screen.findByRole('heading', { name: 'Smoke room' })
     unmount()
     expect(mockSocket.off).toHaveBeenCalledWith('questions:ready', expect.any(Function))
   })

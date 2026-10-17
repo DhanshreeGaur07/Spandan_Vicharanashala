@@ -38,7 +38,7 @@ export default function ProfileDropdown() {
           width: '36px',
           height: '36px',
           borderRadius: '50%',
-          background: user?.profileImage ? 'transparent' : 'linear-gradient(135deg, #1e40af, #3b82f6)',
+          background: user?.profileImage ? 'transparent' : 'var(--accent-gradient)',
           border: '2px solid white',
           cursor: 'pointer',
           display: 'flex',

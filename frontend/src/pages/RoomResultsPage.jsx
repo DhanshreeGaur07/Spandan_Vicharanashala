@@ -3,9 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import useAuthStore from '../stores/authStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
-import ThemeToggle from '../components/ThemeToggle'
-import HelpButton from '../components/HelpButton'
-import ProfileDropdown from '../components/ProfileDropdown'
+import { PageHeader } from '../components/AppUI'
 import { API_URL } from '../config.js'
 import { fetchAllRoomQuestions } from '../services/questionService'
 import useIsMobile from '../hooks/useIsMobile'
@@ -231,41 +229,8 @@ function RoomResultsPage() {
         maxWidth: '100%',
         boxSizing: 'border-box'
       }}>
-        {/* Header */}
-        <header style={{
-          background: 'var(--header-bg)',
-          color: 'white',
-          padding: isMobile ? '20px 16px' : '24px 32px',
-          paddingLeft: isMobile ? '64px' : '32px',
-          boxSizing: 'border-box'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h1 style={{
-                margin: 0,
-                fontSize: isMobile ? '22px' : '26px',
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <span aria-hidden="true">📊</span>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {room?.name || 'Room'} Results
-                </span>
-              </h1>
-              <p style={{ margin: '6px 0 0', opacity: 0.9, fontSize: '14px' }}>
-                Code: {room?.code} • Completed
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <HelpButton />
-              <ThemeToggle />
-              <ProfileDropdown />
-            </div>
-          </div>
-        </header>
+        <PageHeader isMobile={isMobile} icon="📊" eyebrow="Session results" title={room?.name || 'Room'}
+          subtitle={<>Code <strong style={{ letterSpacing: '0.1em' }}>{room?.code}</strong> · Completed{room?.endedAt ? ` · ${new Date(room.endedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}</>} />
 
         {/* Content (faint accent wash behind the results) */}
         <div style={{
@@ -286,7 +251,7 @@ function RoomResultsPage() {
               background: 'var(--bg-card)',
               color: 'var(--text-secondary)',
               border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-sm)',
+              borderRadius: '12px',
               fontSize: '14px',
               fontWeight: 600,
               cursor: 'pointer',
@@ -420,7 +385,7 @@ function RoomResultsPage() {
                               width: '28px',
                               height: '28px',
                               borderRadius: '50%',
-                              background: 'var(--accent)',
+                              background: 'var(--accent-solid)',
                               color: 'white',
                               display: 'flex',
                               alignItems: 'center',
