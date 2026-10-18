@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import useThemeStore from './stores/themeStore'
 import useAuthStore from './stores/authStore'
 import useSocketStore from './stores/socketStore'
 import ProtectedRoute from './components/ProtectedRoute'
 import AuthPage from './pages/AuthPage'
+import AuthCallback from './pages/AuthCallback'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import DashboardPage from './pages/DashboardPage'
 import StudentDashboard from './pages/StudentDashboard'
@@ -16,84 +17,26 @@ import JoinRoomPage from './pages/JoinRoomPage'
 import RoomHistoryPage from './pages/RoomHistoryPage'
 import RoomResultsPage from './pages/RoomResultsPage'
 import ProfilePage from './pages/ProfilePage'
-import { API_URL } from './config.js'
+import HelpModal from './components/HelpModal'
+import Tour from './components/Tour'
+import AdminPage from './pages/AdminPage'
+import { isTokenExpired } from './lib/jwt.js'
 
 function App() {
   const { isDark } = useThemeStore()
-  const { token, isAuthenticated, setAuth } = useAuthStore()
+  const { token, isAuthenticated } = useAuthStore()
   const { connect, disconnect } = useSocketStore()
-  const [samagamaChecked, setSamagamaChecked] = useState(false)
 
-  // Check for Samagama session on app load
+  // On load, if the persisted token is already expired (e.g. the app was opened from a bookmark with a
+  // cached session), drop it immediately so the user lands on the login screen with a clear message
+  // instead of a logged-in-looking UI that only fails when they try to answer. This backs up the
+  // onRehydrateStorage check in authStore for any timing edge.
   useEffect(() => {
-    if (isAuthenticated || samagamaChecked) return
-
-    const checkSamagamaSession = async () => {
-      try {
-        const samagamaToken = localStorage.getItem('samagama_auth_token')
-        console.log('[Spandan] Samagama token found:', !!samagamaToken)
-
-        if (!samagamaToken) {
-          setSamagamaChecked(true)
-          return
-        }
-
-        const response = await fetch('https://samagama.in/api/auth/me', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${samagamaToken}`,
-            'Content-Type': 'application/json'
-          }
-        })
-
-        if (!response.ok) {
-          setSamagamaChecked(true)
-          return
-        }
-
-        const data = await response.json()
-        const samagamaUser = data.user
-        console.log('[Spandan] Samagama user:', samagamaUser?.email)
-
-        if (!samagamaUser || !samagamaUser.email) {
-          setSamagamaChecked(true)
-          return
-        }
-
-        // Send to Spandan backend for auto-provisioning
-        const spandanResponse = await fetch(`${API_URL}/auth/samagama-auto-login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: samagamaUser.email,
-            name: samagamaUser.name,
-            isAdmin: samagamaUser.isAdmin || false,
-            isSuperAdmin: samagamaUser.isSuperAdmin || false
-          })
-        })
-
-        if (!spandanResponse.ok) {
-          setSamagamaChecked(true)
-          return
-        }
-
-        const spandanData = await spandanResponse.json()
-        setAuth(spandanData.user, spandanData.token)
-
-        // Open dashboard in new tab
-        const dashboard = spandanData.user.role === 'teacher' ? '/teacher' : '/student'
-        const redirectUrl = `${window.location.origin}/spandan${dashboard}`
-        console.log('[Spandan] Opening dashboard:', redirectUrl)
-        window.open(redirectUrl, '_blank')
-      } catch (error) {
-        console.error('[Spandan] Samagama session check failed:', error)
-      } finally {
-        setSamagamaChecked(true)
-      }
+    const { token: t } = useAuthStore.getState()
+    if (t && isTokenExpired(t)) {
+      useAuthStore.getState().handleSessionExpired()
     }
-
-    checkSamagamaSession()
-  }, [isAuthenticated, samagamaChecked, setAuth])
+  }, [])
 
   // Connect socket when user is authenticated with valid token
   useEffect(() => {
@@ -123,8 +66,12 @@ function App() {
 
   return (
     <BrowserRouter basename="/spandan">
+      {/* Mounted once for every page: the ⓘ help popup and the guided tour overlay (auto-starts per page). */}
+      <HelpModal />
+      <Tour />
       <Routes>
         <Route path="/" element={<AuthPage />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/teacher" element={
           <ProtectedRoute allowedRoles={['teacher']}>
@@ -159,6 +106,15 @@ function App() {
         <Route path="/teacher/room/:roomId/results" element={
           <ProtectedRoute allowedRoles={['teacher']}>
             <RoomResultsPage />
+          </ProtectedRoute>
+        } />
+        {/* The old sidebar "Manual" pages are gone (help now lives in the ⓘ popup); keep bookmarks working. */}
+        <Route path="/teacher/help" element={<Navigate to="/teacher" replace />} />
+        <Route path="/student/help" element={<Navigate to="/student" replace />} />
+        {/* Admin-only: teacher approval page. Guarded to teachers here and to isAdmin inside the page + API. */}
+        <Route path="/admin" element={
+          <ProtectedRoute allowedRoles={['teacher']}>
+            <AdminPage />
           </ProtectedRoute>
         } />
         <Route path="/student" element={

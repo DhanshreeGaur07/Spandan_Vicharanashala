@@ -20,32 +20,62 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required')
 })
 
+// Email-OTP registration: step 1 requests a code (email only; name optional for the greeting),
+// step 2 submits the full registration form plus the 6-digit code.
+export const sendOtpSchema = z.object({
+  email: z.string().email('Please enter a valid email'),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100).optional()
+})
+
+export const verifyRegistrationSchema = registerSchema.extend({
+  otp: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code')
+})
+
 // Room validation schemas
 export const createRoomSchema = z.object({
   name: z.string().min(1, 'Room name is required').max(200),
   settings: z.object({
     allowLateJoin: z.boolean().optional(),
     showResultsImmediately: z.boolean().optional(),
-    requireCorrectAnswer: z.boolean().optional()
+    requireCorrectAnswer: z.boolean().optional(),
+    mode: z.enum(['normal', 'video']).optional(),
+    videoUrl: z.string().max(500).optional()
   }).optional()
 })
 
 // Settings validation schema for room settings update
+// Room settings as saved from the Settings dialog (PUT /rooms/:id with { settings }). Ranges mirror
+// the dialog's own clamps (RoomSettingsModal.jsx) so a value the UI lets a teacher pick is never
+// rejected here; the schema exists to stop out-of-range values arriving by any other path.
 export const roomSettingsSchema = z.object({
   allowLateJoin: z.boolean().optional(),
   showResultsImmediately: z.boolean().optional(),
   requireCorrectAnswer: z.boolean().optional(),
-  timeToAnswer: z.number().min(5).max(300).optional(),
-  points: z.number().min(10).max(1000).optional(),
-  segmentTime: z.number().min(1).max(60).optional(),
-  questionsPerSegment: z.number().min(1).max(10).optional(),
+  mode: z.enum(['normal', 'video']).optional(),
+  videoUrl: z.string().max(500).optional(),
+  timeToAnswer: z.number().int().min(0).max(300).optional(),       // seconds; dialog 0-300
+  points: z.number().int().min(1).max(500).optional(),             // dialog 1-500
+  segmentTime: z.number().int().min(1).max(15).optional(),         // whole minutes; dialog 1-15
+  questionsPerSegment: z.number().int().min(1).max(10).optional(), // dialog 1-10
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   questionProvider: z.enum(['minimax', 'openai', 'anthropic', 'google']).optional(),
   questionTypeMix: z.object({
-    MCQ: z.number().min(0).max(100).optional(),
-    TF: z.number().min(0).max(100).optional(),
-    MSQ: z.number().min(0).max(100).optional()
-  }).optional()
+    MCQ: z.number().int().min(0).max(100).optional(),
+    TF: z.number().int().min(0).max(100).optional(),
+    MSQ: z.number().int().min(0).max(100).optional()
+  }).optional(),
+  anonymousLeaderboard: z.boolean().optional(),
+  anonymityPercent: z.number().int().min(0).max(100).optional(),   // dialog 0-100
+  revealBottomToStudents: z.boolean().optional()
+})
+
+// Body of PUT /rooms/:id. The same route saves settings ({ settings }), edits the video link
+// ({ settings: { ...all, mode, videoUrl } }) and ends the room ({ isActive: false, endedAt }).
+// Only known fields are checked; the route still applies req.body as before.
+export const roomUpdateSchema = z.object({
+  settings: roomSettingsSchema.optional(),
+  isActive: z.boolean().optional(),
+  endedAt: z.union([z.string().datetime(), z.date(), z.null()]).optional()
 })
 
 // Question validation schemas

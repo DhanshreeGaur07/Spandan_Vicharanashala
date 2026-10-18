@@ -3,29 +3,68 @@ import crypto from 'crypto'
 import User from '../models/User.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d'
+const JWT_EXPIRY = process.env.JWT_EXPIRY || '30d'
+
+// Short-TTL in-memory cache of authenticated users. Every protected request used to
+// issue a User.findById; during a live session students poll constantly, so that was
+// thousands of redundant _id lookups/sec purely for auth. Caching the resolved user
+// for a few seconds collapses those to one lookup per user per TTL window while keeping
+// the full Mongoose document (so /auth/me and req.user.model keep working).
+// Trade-off: a role change or account deletion takes up to TTL to be reflected.
+// NOTE: this is per-process; when moving to multiple instances, switch to Redis or
+// stateless token claims (see scalability audit, Phase 2).
+const USER_CACHE_TTL_MS = Number(process.env.AUTH_CACHE_TTL_MS) || 60000
+const USER_CACHE_MAX = Number(process.env.AUTH_CACHE_MAX) || 20000
+const userCache = new Map() // userId -> { user, expires }
+
+export const clearUserCache = () => userCache.clear()
 
 export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Authentication required',
-        message: 'Please provide a valid token' 
+        message: 'Please provide a valid token'
       })
     }
 
     const token = authHeader.split(' ')[1]
-    
+
     const decoded = jwt.verify(token, JWT_SECRET)
-    
-    const user = await User.findById(decoded.userId).select('-password')
-    
+
+    let user
+    const cached = userCache.get(decoded.userId)
+    if (cached && cached.expires > Date.now()) {
+      user = cached.user
+    } else {
+      user = await User.findById(decoded.userId).select('-password')
+      if (user) {
+        // Crude bound on cache size: clear wholesale rather than track LRU.
+        if (userCache.size >= USER_CACHE_MAX) userCache.clear()
+        userCache.set(decoded.userId, { user, expires: Date.now() + USER_CACHE_TTL_MS })
+      }
+    }
+
     if (!user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'User not found',
-        message: 'The user associated with this token no longer exists' 
+        message: 'The user associated with this token no longer exists'
+      })
+    }
+
+    // Force-logout unapproved teachers. A teacher whose account is pending or rejected may still
+    // hold a valid token — issued before approval was required, or before an admin revoked them.
+    // Returning 401 makes the client's global fetch interceptor drop the session and send them to
+    // the login screen (which then explains they are awaiting approval). Login separately blocks
+    // them, so they cannot get back in until approved. Approve/reject clears the auth cache, so
+    // this takes effect on their very next request rather than after the cache TTL.
+    if (user.role === 'teacher' && user.teacherApprovalStatus !== 'approved') {
+      return res.status(401).json({
+        error: 'Approval required',
+        code: 'TEACHER_NOT_APPROVED',
+        message: 'Your teacher account is awaiting admin approval. Please sign in once it is approved.'
       })
     }
 
@@ -66,6 +105,39 @@ export const authorize = (...roles) => {
 
     next()
   }
+}
+
+// Defense-in-depth gate for teacher-only actions. The primary control is that an
+// unapproved teacher is never issued a JWT (blocked at /register/verify and /login),
+// so this normally never fires; it covers the edge cases where a token already exists
+// (approval revoked mid-session, or a student self-promoted to teacher via PUT /role).
+// Place AFTER authenticate + authorize('teacher') on every teacher write/session route.
+export const requireApprovedTeacher = (req, res, next) => {
+  if (req.user && req.user.role === 'teacher' && req.user.teacherApprovalStatus !== 'approved') {
+    return res.status(403).json({
+      error: 'Approval pending',
+      code: 'TEACHER_NOT_APPROVED',
+      message: 'Your teacher account is awaiting admin approval.'
+    })
+  }
+  next()
+}
+
+// Admins are identified by the persisted isAdmin flag OR a bootstrap allowlist from the
+// SPANDAN_ADMIN_EMAILS env var (comma-separated), so the first admin can act before any
+// isAdmin flag is set in the DB. Never trust a client-supplied admin claim.
+const ADMIN_EMAILS = (process.env.SPANDAN_ADMIN_EMAILS || '')
+  .split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+
+export const authorizeAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated', message: 'Please sign in.' })
+  }
+  const isAdmin = req.user.isAdmin === true || ADMIN_EMAILS.includes((req.user.email || '').toLowerCase())
+  if (!isAdmin) {
+    return res.status(403).json({ error: 'Access denied', message: 'Admin access required.' })
+  }
+  next()
 }
 
 export const generateToken = (userId) => {

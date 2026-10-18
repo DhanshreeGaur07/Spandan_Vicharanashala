@@ -3,13 +3,43 @@ import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../stores/authStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
-import ThemeToggle from '../components/ThemeToggle'
-import ProfileDropdown from '../components/ProfileDropdown'
+import useIsMobile from '../hooks/useIsMobile'
+import { PageHeader, pageWash, inputStyle, RoomCard, Pill, EmptyState, iconButton } from '../components/AppUI'
+import { SectionLabel } from '../components/InsightUI'
+import { API_URL } from '../config.js'
 
 function RoomHistoryPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const { user, token } = useAuthStore()
   const { rooms, isLoading, fetchRooms, setAuthToken } = useRoomStore()
+  const [downloadingId, setDownloadingId] = React.useState(null)
+  const [query, setQuery] = React.useState('')
+
+  // Download a room's complete results as a CSV (teacher-only endpoint; needs the auth
+  // header, so we fetch as a Blob and trigger the download rather than using a plain link).
+  const downloadCsv = async (room) => {
+    setDownloadingId(room._id)
+    try {
+      const res = await fetch(`${API_URL}/responses/room/${room._id}/export`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) throw new Error('Export failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const date = room.endedAt ? new Date(room.endedAt).toISOString().slice(0, 10) : 'session'
+      const safe = (room.name || 'room').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 60)
+      a.href = url
+      a.download = `Spandan_${safe}_${date}.csv`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      alert('Could not download the results CSV. Please try again.')
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   useEffect(() => {
     if (token) {
@@ -23,97 +53,63 @@ function RoomHistoryPage() {
     }
   }, [token, user?.role])
 
-  // Filter ended rooms for teacher view
-  const endedRooms = rooms?.filter(r => r.endedAt) || []
+  // Filter ended rooms for teacher view (newest first), then by the search box (name or code)
+  const endedRooms = (rooms?.filter(r => r.endedAt) || []).slice().sort((a, b) => new Date(b.endedAt) - new Date(a.endedAt))
+  const q = query.trim().toLowerCase()
+  const shown = q ? endedRooms.filter(r => (r.name || '').toLowerCase().includes(q) || (r.code || '').toLowerCase().includes(q)) : endedRooms
+  const isTeacher = user?.role === 'teacher'
 
   return (
-    <div style={{
-      display: 'flex',
-      minHeight: '100vh',
-      background: 'var(--bg-primary)',
-      fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif'
-    }}>
+    <div style={{ display: 'flex', minHeight: '100vh', maxWidth: '100%', boxSizing: 'border-box', background: 'var(--bg-primary)', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>
       <Sidebar user={user} />
-      
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '240px' }}>
-        {/* Header */}
-        <header style={{
-          background: 'var(--header-bg)',
-          color: 'white',
-          padding: '24px 32px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>Room History</h1>
-              <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>View past classroom sessions</p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <ThemeToggle />
-              <ProfileDropdown />
-            </div>
-          </div>
-        </header>
+
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', marginLeft: 'var(--sidebar-width, 240px)', maxWidth: '100%', boxSizing: 'border-box' }}>
+        <PageHeader isMobile={isMobile} icon="📜" title="Room History" subtitle="View past classroom sessions" />
 
         {/* Content */}
-        <div style={{ flex: 1, padding: '32px' }}>
-          <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)' }}>
-            Ended Rooms
-          </h2>
-          
+        <div style={{ flex: 1, padding: isMobile ? '16px' : '28px 32px 32px', maxWidth: '100%', boxSizing: 'border-box', background: pageWash }}>
+          <SectionLabel actions={endedRooms.length > 3 && (
+            <input type="search" className="app-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or code" aria-label="Search rooms"
+              style={inputStyle({ width: isMobile ? '100%' : 260, padding: '9px 12px', fontSize: 13 })} />
+          )}>
+            {`Ended rooms${endedRooms.length ? ` · ${q ? `${shown.length} of ${endedRooms.length}` : endedRooms.length}` : ''}`}
+          </SectionLabel>
+
           {isLoading ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-              Loading rooms...
-            </div>
-          ) : endedRooms.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-              {endedRooms.map((room) => (
-                <div
+            <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-secondary)' }}>Loading rooms…</div>
+          ) : shown.length > 0 ? (
+            <div data-tour="history-list" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+              {shown.map((room, i) => (
+                <RoomCard
                   key={room._id}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    padding: '20px',
-                    background: 'var(--nav-hover)',
-                    borderRadius: '16px',
-                    minHeight: '140px'
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>
-                      {room.name}
-                    </h3>
-                    <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      Code: <strong style={{ color: '#3b82f6', letterSpacing: '1px' }}>{room.code}</strong>
-                    </p>
-                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      Ended {room.endedAt ? new Date(room.endedAt).toLocaleDateString() : ''}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => navigate(`/${user?.role === 'teacher' ? 'teacher' : 'student'}/room/${room._id}/results`)}
-                    style={{
-                      marginTop: '16px',
-                      padding: '10px 16px',
-                      background: '#059669',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    View Results →
-                  </button>
-                </div>
+                  icon={room.settings?.mode === 'video' ? '🎬' : '🏁'}
+                  tint={room.settings?.mode === 'video' ? '#ec4899' : '#64748b'}
+                  title={room.name}
+                  code={room.code}
+                  status={<Pill tone="#64748b">{`Ended ${room.endedAt ? new Date(room.endedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : ''}`}</Pill>}
+                  actionLabel="View Results →"
+                  tourAction={i === 0 ? 'view-results' : undefined}
+                  onAction={() => navigate(`/${isTeacher ? 'teacher' : 'student'}/room/${room._id}/results`)}
+                  extraActions={isTeacher && (
+                    <button
+                      type="button"
+                      data-tour={i === 0 ? 'csv-button' : undefined}
+                      onClick={(e) => { e.stopPropagation(); downloadCsv(room) }}
+                      disabled={downloadingId === room._id}
+                      title="Download complete results as CSV"
+                      aria-label={`Download results CSV for ${room.name}`}
+                      style={{ ...iconButton('var(--accent)'), width: 'auto', padding: '0 12px', fontSize: 12.5, cursor: downloadingId === room._id ? 'wait' : 'pointer' }}
+                    >
+                      {downloadingId === room._id ? '…' : '⬇ CSV'}
+                    </button>
+                  )}
+                />
               ))}
             </div>
+          ) : q ? (
+            <EmptyState icon="🔍" title="No rooms match your search" description={`Nothing named or coded "${query}". Try a shorter search.`} />
           ) : (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📜</div>
-              <p>No ended rooms yet.</p>
-              <p style={{ fontSize: '12px', marginTop: '8px' }}>Rooms you end will appear here for review.</p>
-            </div>
+            <EmptyState icon="📜" title="No ended rooms yet" description="Rooms you end will appear here for review." />
           )}
         </div>
       </div>

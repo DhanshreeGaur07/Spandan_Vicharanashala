@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import QuestionEditor from './QuestionEditor'
 
 function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComplete }) {
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -7,6 +8,7 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
   const [timeLeft, setTimeLeft] = useState(30)
   const [isTimerActive, setIsTimerActive] = useState(false)
   const [launchedQuestionIndex, setLaunchedQuestionIndex] = useState(-1) // which question is currently launched
+  const [isEditing, setIsEditing] = useState(false)
   const timerRef = useRef(null)
   const defaultTimeToAnswer = 30
 
@@ -14,6 +16,13 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
     setPendingQuestions(questions || [])
     setCurrentIndex(0)
   }, [questions])
+
+  // Leave edit mode whenever we move to a different question.
+  useEffect(() => { setIsEditing(false) }, [currentIndex])
+
+  // Persist an edited question back into local state so Approve & Launch sends the edited version.
+  const updateCurrent = (updated) =>
+    setPendingQuestions(prev => prev.map((q, i) => (i === currentIndex ? updated : q)))
 
   // Start the countdown timer for a launched question
   const startTimer = (questionIndex) => {
@@ -110,7 +119,7 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
 
   const getTypeColor = (type) => {
     switch (type) {
-      case 'MCQ': return '#3b82f6'
+      case 'MCQ': return 'var(--accent)'
       case 'TF': return '#10b981'
       case 'MSQ': return '#8b5cf6'
       default: return '#6b7280'
@@ -182,18 +191,37 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
               </div>
             )}
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              fontSize: '20px',
-              cursor: 'pointer',
-              color: 'var(--text-secondary)'
-            }}
-          >
-            ✕
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {!(isTimerActive && launchedQuestionIndex === currentIndex) && (
+              <button
+                onClick={() => setIsEditing(e => !e)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '20px',
+                  border: `1px solid ${isEditing ? '#10b981' : 'var(--border-color)'}`,
+                  background: isEditing ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
+                  color: isEditing ? '#10b981' : 'var(--text-secondary)',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                {isEditing ? '✓ Done' : '✏️ Edit'}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: '20px',
+                cursor: 'pointer',
+                color: 'var(--text-secondary)'
+              }}
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Question Navigation Pills */}
@@ -206,10 +234,10 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
                 padding: '4px 12px',
                 borderRadius: '20px',
                 border: index === currentIndex 
-                  ? '2px solid #3b82f6' 
+                  ? '2px solid var(--accent)' 
                   : '1px solid var(--border-color)',
                 background: index === currentIndex ? '#dbeafe' : 'transparent',
-                color: index === currentIndex ? '#1e40af' : 'var(--text-secondary)',
+                color: index === currentIndex ? 'var(--accent)' : 'var(--text-secondary)',
                 fontSize: '12px',
                 cursor: 'pointer'
               }}
@@ -219,7 +247,10 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
           ))}
         </div>
 
-        {/* Current Question Card */}
+        {/* Current Question Card — editable when the teacher taps Edit, read-only otherwise */}
+        {isEditing ? (
+          <QuestionEditor question={currentQuestion} onChange={updateCurrent} />
+        ) : (
         <div style={{
           background: 'var(--bg-primary)',
           borderRadius: '16px',
@@ -232,7 +263,7 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
             display: 'inline-block',
             padding: '4px 12px',
             borderRadius: '20px',
-            background: getTypeColor(currentQuestion.type) + '20',
+            background: `color-mix(in srgb, ${getTypeColor(currentQuestion.type)} 13%, transparent)`,
             color: getTypeColor(currentQuestion.type),
             fontSize: '12px',
             fontWeight: '600',
@@ -314,6 +345,7 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
             </div>
           )}
         </div>
+        )}
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '12px' }}>
@@ -326,7 +358,7 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
                   padding: '14px',
                   borderRadius: '12px',
                   border: 'none',
-                  background: 'linear-gradient(135deg, #3b82f6, #1e40af)',
+                  background: 'var(--accent-gradient)',
                   color: 'white',
                   fontSize: '14px',
                   fontWeight: '600',
@@ -418,7 +450,7 @@ function QuestionApprovalPopup({ questions, onApprove, onReject, onClose, onComp
           <div style={{
             height: '100%',
             width: `${((currentIndex + 1) / pendingQuestions.length) * 100}%`,
-            background: 'linear-gradient(90deg, #3b82f6, #10b981)',
+            background: 'linear-gradient(90deg, var(--accent), #10b981)',
             transition: 'width 0.3s ease'
           }} />
         </div>

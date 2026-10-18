@@ -191,7 +191,7 @@ function CreateQuestionOverlay({ isOpen, onClose, onLaunch, defaultType = 'MCQ' 
           borderBottom: '1px solid var(--border-color)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#3b82f6' }}>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: 'var(--accent)' }}>
               ✍️ Create Question
             </h2>
             {isLaunched && (
@@ -243,9 +243,9 @@ function CreateQuestionOverlay({ isOpen, onClose, onLaunch, defaultType = 'MCQ' 
                   flex: 1,
                   padding: '10px',
                   borderRadius: '8px',
-                  border: questionType === type ? '2px solid #3b82f6' : '1px solid var(--border-color)',
+                  border: questionType === type ? '2px solid var(--accent)' : '1px solid var(--border-color)',
                   background: questionType === type ? '#dbeafe' : 'transparent',
-                  color: questionType === type ? '#1e40af' : 'var(--text-primary)',
+                  color: questionType === type ? 'var(--accent)' : 'var(--text-primary)',
                   fontSize: '13px',
                   fontWeight: '600',
                   cursor: 'pointer'
@@ -297,9 +297,9 @@ function CreateQuestionOverlay({ isOpen, onClose, onLaunch, defaultType = 'MCQ' 
                   marginLeft: '8px',
                   padding: '2px 8px',
                   fontSize: '10px',
-                  background: '#3b82f620',
-                  color: '#3b82f6',
-                  border: '1px solid #3b82f6',
+                  background: 'color-mix(in srgb, var(--accent) 13%, transparent)',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--accent)',
                   borderRadius: '4px',
                   cursor: 'pointer'
                 }}
@@ -320,9 +320,9 @@ function CreateQuestionOverlay({ isOpen, onClose, onLaunch, defaultType = 'MCQ' 
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        border: opt.isCorrect ? '2px solid #3b82f6' : '1px solid var(--border-color)',
+                        border: opt.isCorrect ? '2px solid var(--accent)' : '1px solid var(--border-color)',
                         background: opt.isCorrect ? '#dbeafe' : 'var(--bg-primary)',
-                        color: opt.isCorrect ? '#3b82f6' : 'var(--text-secondary)',
+                        color: opt.isCorrect ? 'var(--accent)' : 'var(--text-secondary)',
                         fontSize: '12px',
                         fontWeight: '600',
                         cursor: 'pointer'
@@ -339,14 +339,14 @@ function CreateQuestionOverlay({ isOpen, onClose, onLaunch, defaultType = 'MCQ' 
                         flex: 1,
                         padding: '10px 12px',
                         borderRadius: '8px',
-                        border: opt.isCorrect ? '2px solid #3b82f6' : '1px solid var(--border-color)',
+                        border: opt.isCorrect ? '2px solid var(--accent)' : '1px solid var(--border-color)',
                         background: 'var(--bg-primary)',
                         color: 'var(--text-primary)',
                         fontSize: '13px'
                       }}
                     />
                     {opt.isCorrect && (
-                      <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '500' }}>✓</span>
+                      <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: '500' }}>✓</span>
                     )}
                     {options.length > 2 && (
                       <button
@@ -374,9 +374,9 @@ function CreateQuestionOverlay({ isOpen, onClose, onLaunch, defaultType = 'MCQ' 
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        border: opt.isCorrect ? '2px solid #3b82f6' : '1px solid var(--border-color)',
+                        border: opt.isCorrect ? '2px solid var(--accent)' : '1px solid var(--border-color)',
                         background: opt.isCorrect ? '#dbeafe' : 'var(--bg-primary)',
-                        color: opt.isCorrect ? '#3b82f6' : 'var(--text-secondary)',
+                        color: opt.isCorrect ? 'var(--accent)' : 'var(--text-secondary)',
                         fontSize: '12px',
                         fontWeight: '600',
                         cursor: 'pointer'
@@ -388,7 +388,7 @@ function CreateQuestionOverlay({ isOpen, onClose, onLaunch, defaultType = 'MCQ' 
                       {opt.text}
                     </span>
                     {opt.isCorrect && (
-                      <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '500' }}>✓ Correct</span>
+                      <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: '500' }}>✓ Correct</span>
                     )}
                   </>
                 )}
@@ -490,7 +490,7 @@ function CreateQuestionOverlay({ isOpen, onClose, onLaunch, defaultType = 'MCQ' 
             padding: '14px',
             borderRadius: '12px',
             border: 'none',
-            background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+            background: 'var(--accent-gradient)',
             color: 'white',
             fontSize: '14px',
             fontWeight: '600',

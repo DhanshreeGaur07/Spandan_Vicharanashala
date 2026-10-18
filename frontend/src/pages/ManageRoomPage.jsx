@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../stores/authStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
-import ThemeToggle from '../components/ThemeToggle'
-import ProfileDropdown from '../components/ProfileDropdown'
+import useIsMobile from '../hooks/useIsMobile'
+import { PageHeader, pageWash, primaryButton, RoomCard, Pill, EmptyState, iconButton } from '../components/AppUI'
+import { SectionLabel } from '../components/InsightUI'
 
 function ManageRoomPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const { user, token } = useAuthStore()
   const { rooms, isLoading, fetchRooms, deleteRoom, setAuthToken } = useRoomStore()
 
@@ -32,110 +34,45 @@ function ManageRoomPage() {
   const activeRooms = rooms?.filter(r => !r.endedAt) || []
 
   return (
-    <div style={{
-      display: 'flex',
-      minHeight: '100vh',
-      background: 'var(--bg-primary)',
-      fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif'
-    }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>
       <Sidebar user={user} />
-      
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '240px' }}>
-        {/* Header */}
-        <header style={{
-          background: 'var(--header-bg)',
-          color: 'white',
-          padding: '24px 32px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>Manage Rooms</h1>
-              <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>View and manage your active classrooms</p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <ThemeToggle />
-              <ProfileDropdown />
-            </div>
-          </div>
-        </header>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: 'var(--sidebar-width, 240px)', minWidth: 0, maxWidth: '100%', boxSizing: 'border-box' }}>
+        <PageHeader isMobile={isMobile} icon="⚙️" title="Manage Rooms" subtitle="View and manage your active classrooms" />
 
         {/* Content */}
-        <div style={{ flex: 1, padding: '32px' }}>
-          <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)' }}>
-            Active Rooms
-          </h2>
-          
+        <div style={{ flex: 1, padding: isMobile ? '16px' : '28px 32px 32px', boxSizing: 'border-box', maxWidth: '100%', background: pageWash }}>
+          <SectionLabel actions={<button onClick={() => navigate('/teacher/create-room')} style={primaryButton(false, { padding: '9px 16px', fontSize: 13 })}>＋ New room</button>}>
+            {`Active rooms${!isLoading && activeRooms.length ? ` · ${activeRooms.length}` : ''}`}
+          </SectionLabel>
+
           {isLoading ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-              Loading rooms...
-            </div>
+            <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-secondary)' }}>Loading rooms…</div>
           ) : activeRooms.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-              {activeRooms.map((room) => (
-                <div
+            <div data-tour="room-list" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+              {activeRooms.map((room, i) => (
+                <RoomCard
                   key={room._id}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    padding: '20px',
-                    background: 'var(--bg-card)',
-                    borderRadius: '16px',
-                    border: '1px solid var(--border-color)',
-                    minHeight: '140px'
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>
-                      {room.name}
-                    </h3>
-                    <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      Code: <strong style={{ color: '#3b82f6', letterSpacing: '1px' }}>{room.code}</strong>
-                    </p>
-                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      {room.questionCount || 0} questions
-                    </p>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                    <button
-                      onClick={() => navigate(`/teacher/room/${room._id}`)}
-                      style={{
-                        flex: 1,
-                        padding: '10px 12px',
-                        background: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Manage
-                    </button>
-                    <button
-                      onClick={() => handleDeleteRoom(room._id)}
-                      style={{
-                        padding: '10px 12px',
-                        background: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
+                  icon={room.settings?.mode === 'video' ? '🎬' : '🎙️'}
+                  tint={room.settings?.mode === 'video' ? '#ec4899' : 'var(--accent)'}
+                  title={room.name}
+                  code={room.code}
+                  status={<span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}><Pill tone="#10b981" dot>Active</Pill>{room.settings?.mode === 'video' && <Pill tone="#ec4899">Video</Pill>}</span>}
+                  meta={[`${room.questionCount || 0} question${room.questionCount === 1 ? '' : 's'}`]}
+                  actionLabel="Manage →"
+                  tourAction={i === 0 ? 'manage-button' : undefined}
+                  onOpen={() => navigate(`/teacher/room/${room._id}`)}
+                  onAction={() => navigate(`/teacher/room/${room._id}`)}
+                  extraActions={
+                    <button type="button" aria-label={`Delete room ${room.name}`} title="Delete room" onClick={(e) => { e.stopPropagation(); handleDeleteRoom(room._id) }} style={iconButton('#ef4444')}>✕</button>
+                  }
+                />
               ))}
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
-              <p>No active rooms.</p>
-            </div>
+            <EmptyState icon="📭" title="No active rooms" description="Rooms you create stay here until you end them.">
+              <button onClick={() => navigate('/teacher/create-room')} style={primaryButton(false)}>＋ Create a room</button>
+            </EmptyState>
           )}
         </div>
       </div>

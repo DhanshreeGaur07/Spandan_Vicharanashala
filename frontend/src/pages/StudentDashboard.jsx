@@ -4,11 +4,15 @@ import useAuthStore from '../stores/authStore'
 import useSocketStore from '../stores/socketStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
-import ThemeToggle from '../components/ThemeToggle'
-import ProfileDropdown from '../components/ProfileDropdown'
 import { API_URL } from '../config.js'
+import useIsMobile from '../hooks/useIsMobile'
+import useNow from '../hooks/useNow'
+import { PageHeader, pageWash, greeting, dateLabel, LiveClock, inputStyle, primaryButton, RoomCard, Pill, EmptyState } from '../components/AppUI'
+import { StatTile, TileGrid, SectionLabel, SectionHeader, cardStyle } from '../components/InsightUI'
 
 function StudentDashboard() {
+  const isMobile = useIsMobile()
+  const now = useNow()
   const navigate = useNavigate()
   const { user, token } = useAuthStore()
   const { socket, isConnected, joinRoom, leaveRoom } = useSocketStore()
@@ -67,215 +71,91 @@ function StudentDashboard() {
     }
   }
 
+  const totalPolls = stats.pollsTaken + stats.pollsMissed
+  const firstName = (user?.name || 'Student').split(' ')[0]
+  const joinDisabled = isJoining || !roomCode.trim()
+
   return (
     <div style={{
       display: 'flex',
       minHeight: '100vh',
       background: 'var(--bg-primary)',
-      fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif'
+      fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+      maxWidth: '100%',
+      boxSizing: 'border-box'
     }}>
       <Sidebar user={user} />
-      
+
       {/* Main Content */}
       <div style={{
         flex: 1,
+        minWidth: 0,
         display: 'flex',
         flexDirection: 'column',
-        marginLeft: '240px'
+        marginLeft: 'var(--sidebar-width, 240px)',
+        transition: 'margin-left 0.2s ease'
       }}>
-        {/* Header - Blue gradient bar */}
-        <header style={{
-          background: 'var(--header-bg)',
-          color: 'white',
-          padding: '24px 32px'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>
-                Welcome, {user?.name || 'Student'}!
-              </h1>
-              <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>
-                Join rooms and participate in polls
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <ThemeToggle />
-              <ProfileDropdown />
-            </div>
-          </div>
-        </header>
+        <PageHeader isMobile={isMobile} icon="🎓" eyebrow={<>{dateLabel(now)} · <LiveClock /></>}
+          title={`${greeting(now)}, ${firstName}!`} subtitle="Join rooms and participate in polls" />
 
         {/* Dashboard content */}
-        <div style={{ flex: 1, padding: '32px' }}>
-          {/* Stats Cards */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '20px',
-            marginBottom: '32px'
-          }}>
-            <div style={{
-              background: 'var(--bg-card)',
-              borderRadius: '16px',
-              padding: '24px',
-              boxShadow: 'var(--card-shadow)',
-              border: '1px solid var(--border-color)'
-            }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>📚</div>
-              <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>{stats.totalRooms}</div>
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>Total Rooms</div>
-            </div>
-            
-            <div style={{
-              background: 'var(--bg-card)',
-              borderRadius: '16px',
-              padding: '24px',
-              boxShadow: 'var(--card-shadow)',
-              border: '1px solid var(--border-color)'
-            }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>✅</div>
-              <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>{stats.pollsTaken}</div>
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>Polls Taken</div>
-            </div>
-            
-            <div style={{
-              background: 'var(--bg-card)',
-              borderRadius: '16px',
-              padding: '24px',
-              boxShadow: 'var(--card-shadow)',
-              border: '1px solid var(--border-color)'
-            }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>❌</div>
-              <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>{stats.pollsMissed}</div>
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>Polls Missed</div>
-            </div>
-            
-            <div style={{
-              background: 'var(--bg-card)',
-              borderRadius: '16px',
-              padding: '24px',
-              boxShadow: 'var(--card-shadow)',
-              border: '1px solid var(--border-color)'
-            }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>📈</div>
-              <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>{stats.average}%</div>
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>Earned Points %</div>
-            </div>
-          </div>
+        <div style={{ flex: 1, padding: isMobile ? '16px' : '28px 32px 32px', maxWidth: '100%', boxSizing: 'border-box', background: pageWash }}>
+          <SectionLabel>Your progress</SectionLabel>
+          <TileGrid isMobile={isMobile} cols={4} tour="stats">
+            {[
+              { icon: '📚', label: 'Rooms joined', value: stats.totalRooms, sub: 'sessions attended', tint: 'var(--accent)' },
+              { icon: '✅', label: 'Polls taken', value: stats.pollsTaken, sub: totalPolls ? `of ${totalPolls} polls` : 'answered so far', tint: '#10b981', progress: totalPolls ? (stats.pollsTaken / totalPolls) * 100 : undefined },
+              { icon: '⏭️', label: 'Polls missed', value: stats.pollsMissed, sub: stats.pollsMissed ? 'not answered in time' : 'none missed', tint: '#ef4444' },
+              { icon: '📈', label: 'Earned points', value: `${stats.average}%`, sub: 'of the points available', tint: '#8b5cf6', progress: stats.average },
+            ].map(t => <StatTile key={t.label} {...t} isMobile={isMobile} />)}
+          </TileGrid>
 
-          {/* Quick Join Section */}
-          <div style={{
-            background: 'var(--bg-card)',
-            borderRadius: '16px',
-            padding: '24px',
-            boxShadow: 'var(--card-shadow)',
-            border: '1px solid var(--border-color)',
-            marginBottom: '32px'
+          {/* Quick Join */}
+          <SectionLabel>Join a session</SectionLabel>
+          <div data-tour="quick-join" className="insight-card" style={{
+            ...cardStyle(isMobile),
+            background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--bg-card)) 0%, color-mix(in srgb, #8b5cf6 7%, var(--bg-card)) 100%)',
+            border: '1px solid color-mix(in srgb, var(--accent) 22%, var(--border-color))'
           }}>
-            <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)' }}>
-              Quick Join
-            </h2>
-            
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <SectionHeader icon="🔗" title="Quick Join" hint="Enter the room code your teacher shared to join the live session." />
+            <div style={{ display: 'flex', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
               <input
                 type="text"
+                className="app-input"
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                placeholder="Enter room code..."
+                onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
+                placeholder="ROOM CODE"
+                aria-label="Room code"
                 maxLength={8}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  border: '2px solid var(--border-color)',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  background: 'var(--input-bg)',
-                  color: 'var(--text-primary)',
-                  letterSpacing: '2px',
-                  fontWeight: '600'
-                }}
+                style={inputStyle({ flex: 1, fontSize: '18px', fontWeight: 700, letterSpacing: '0.3em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', padding: '13px 16px', textAlign: isMobile ? 'center' : 'left' })}
               />
-              
-              <button
-                onClick={handleJoinRoom}
-                disabled={isJoining || !roomCode.trim()}
-                style={{
-                  padding: '12px 24px',
-                  background: (isJoining || !roomCode.trim()) ? '#9ca3af' : '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: (isJoining || !roomCode.trim()) ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {isJoining ? 'Joining...' : 'Join Room'}
+              <button onClick={handleJoinRoom} disabled={joinDisabled} style={primaryButton(joinDisabled, { padding: '13px 26px', fontSize: '15px' })}>
+                {isJoining ? 'Joining…' : 'Join Room →'}
               </button>
             </div>
           </div>
 
           {/* Active Joined Rooms Section */}
-          {activeRooms.length > 0 && (
-            <>
-              <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                🟢 Previously Joined Active Rooms
-              </h2>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-                gap: '16px',
-                marginBottom: '32px'
-              }}>
-                {activeRooms.map((room) => (
-                  <div
-                    key={room._id}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      padding: '20px',
-                      background: 'var(--bg-card)',
-                      borderRadius: '16px',
-                      border: '1px solid var(--border-color)',
-                      minHeight: '140px'
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>
-                        {room.name}
-                      </h3>
-                      <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        Code: <strong style={{ color: '#3b82f6', letterSpacing: '1px' }}>{room.code}</strong>
-                      </p>
-                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        {room.questionCount || 0} questions • {room.settings?.timeToAnswer || 30}s per question
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => navigate(`/student/session/${room.code}`)}
-                      style={{
-                        marginTop: '16px',
-                        padding: '10px 16px',
-                        background: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      🔄 Rejoin Room →
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </>
+          <SectionLabel>{`Your active rooms${activeRooms.length ? ` · ${activeRooms.length}` : ''}`}</SectionLabel>
+          {activeRooms.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginBottom: isMobile ? '24px' : '32px' }}>
+              {activeRooms.map((room) => (
+                <RoomCard
+                  key={room._id}
+                  icon={room.settings?.mode === 'video' ? '🎬' : '🎙️'}
+                  tint={room.settings?.mode === 'video' ? '#ec4899' : 'var(--accent)'}
+                  title={room.name}
+                  code={room.code}
+                  status={<span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}><Pill tone="#10b981" dot>Live</Pill>{room.settings?.mode === 'video' && <Pill tone="#ec4899">Video</Pill>}</span>}
+                  meta={[`${room.questionCount || 0} questions`, `${room.settings?.timeToAnswer || 30}s each`]}
+                  actionLabel="Rejoin room →"
+                  onAction={() => navigate(`/student/session/${room.code}`)}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState icon="🔭" title="No active rooms right now" description="When your teacher starts a session, enter its code above. Rooms you join stay here while they are live." />
           )}
         </div>
       </div>

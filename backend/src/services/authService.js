@@ -8,12 +8,14 @@ export const register = async (name, email, password, role) => {
     throw new Error('Email already registered')
   }
 
-  // Create new user
+  // Create new user. Teachers start 'pending' (admin must approve before they can sign in
+  // or use teacher features); students are 'approved' (the field is inert for them).
   const user = new User({
     name,
     email: email.toLowerCase(),
     password,
-    role
+    role,
+    teacherApprovalStatus: role === 'teacher' ? 'pending' : 'approved'
   })
 
   await user.save()
@@ -89,7 +91,18 @@ export const updateUserRole = async (userId, role) => {
   if (!user) {
     throw new Error('User not found')
   }
-  
+
+  // Self-promoting to teacher requires admin approval; it does not grant teacher access
+  // immediately. Switching to (or staying) student is always approved. Preserve an
+  // already-approved teacher's status so an approved teacher isn't reset by a no-op call.
+  if (role === 'teacher') {
+    if (user.role !== 'teacher' || user.teacherApprovalStatus !== 'approved') {
+      user.teacherApprovalStatus = 'pending'
+    }
+  } else {
+    user.teacherApprovalStatus = 'approved'
+  }
+
   user.role = role
   await user.save()
   return user
@@ -122,6 +135,20 @@ export const updateProfile = async (userId, profileData) => {
   // Handle nested socialLinks object
   if (profileData.socialLinks) {
     user.socialLinks = { ...user.socialLinks.toObject(), ...profileData.socialLinks }
+  }
+
+  // Guided-tour completion flags: merge the tour ids sent (each an ISO date or null). Ids are short
+  // kebab-case tokens; anything else is ignored. Bounded so the object cannot grow without limit.
+  if (profileData.tourSeen && typeof profileData.tourSeen === 'object' && !Array.isArray(profileData.tourSeen)) {
+    const current = (user.tourSeen && typeof user.tourSeen === 'object') ? { ...user.tourSeen } : {}
+    for (const [id, v] of Object.entries(profileData.tourSeen)) {
+      if (!/^[a-z0-9-]{1,40}$/.test(id)) continue
+      if (v === null) { delete current[id]; continue }
+      const d = new Date(v)
+      if (!Number.isNaN(d.getTime())) current[id] = d
+    }
+    user.tourSeen = Object.fromEntries(Object.entries(current).slice(0, 50))
+    user.markModified('tourSeen')
   }
 
   await user.save()

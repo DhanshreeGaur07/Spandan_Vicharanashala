@@ -4,19 +4,21 @@ import useAuthStore from '../stores/authStore'
 import useSocketStore from '../stores/socketStore'
 import useRoomStore from '../stores/roomStore'
 import Sidebar from '../components/Sidebar'
-import ThemeToggle from '../components/ThemeToggle'
-import ProfileDropdown from '../components/ProfileDropdown'
+import useIsMobile from '../hooks/useIsMobile'
+import { PageHeader, pageWash, inputStyle, primaryButton } from '../components/AppUI'
 
 function JoinRoomPage() {
   const navigate = useNavigate()
   const { user, token } = useAuthStore()
   const { joinRoom, leaveRoom } = useSocketStore()
   const { joinRoomByCode, setAuthToken } = useRoomStore()
-  
+  const isMobile = useIsMobile()
+
   const [roomCode, setRoomCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [error, setError] = useState('')
   const [joinedRoom, setJoinedRoom] = useState(null)
+  const [isFocused, setIsFocused] = useState(false)
 
   useEffect(() => {
     if (token) {
@@ -29,10 +31,10 @@ function JoinRoomPage() {
       setError('Please enter a room code')
       return
     }
-    
+
     setIsJoining(true)
     setError('')
-    
+
     try {
       const room = await joinRoomByCode(roomCode.trim().toUpperCase())
       setJoinedRoom(room)
@@ -52,107 +54,75 @@ function JoinRoomPage() {
     }
   }
 
+  const isDisabled = isJoining || roomCode.length < 6
+
   return (
-    <div style={{
-      display: 'flex',
-      minHeight: '100vh',
-      background: 'var(--bg-primary)',
-      fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif'
-    }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', maxWidth: '100%' }}>
       <Sidebar user={user} />
-      
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '240px' }}>
-        {/* Header */}
-        <header style={{
-          background: 'var(--header-bg)',
-          color: 'white',
-          padding: '24px 32px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>Join a Room</h1>
-              <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>Enter the code shared by your teacher</p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <ThemeToggle />
-              <ProfileDropdown />
-            </div>
-          </div>
-        </header>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: 'var(--sidebar-width, 240px)', minWidth: 0, maxWidth: '100%' }}>
+        <PageHeader isMobile={isMobile} icon="🔗" title="Join a Room" subtitle="Enter the code shared by your teacher" />
 
         {/* Content */}
-        <div style={{ flex: 1, padding: '32px' }}>
-          <div style={{
-            background: 'var(--bg-card)',
-            borderRadius: '16px',
-            padding: '32px',
-            boxShadow: 'var(--card-shadow)',
-            border: '1px solid var(--border-color)',
-            maxWidth: '500px',
-            margin: '0 auto'
+        <div style={{ flex: 1, padding: isMobile ? '16px' : '40px 32px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', boxSizing: 'border-box', background: pageWash }}>
+          <div className="insight-card" style={{
+            background: 'var(--bg-card)', borderRadius: 22, border: '1px solid var(--border-color)', width: '100%', maxWidth: 480, boxSizing: 'border-box', overflow: 'hidden',
+            boxShadow: '0 1px 2px rgba(16,24,40,0.04), 0 14px 36px rgba(16,24,40,0.08)'
           }}>
-            <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)' }}>
-              Enter Room Code
-            </h2>
-            <p style={{ margin: '0 0 24px', color: 'var(--text-secondary)', fontSize: '14px' }}>
-              Ask your teacher for the 6-digit code to join their room
-            </p>
-            
-            {error && (
-              <div style={{
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: '8px',
-                padding: '12px',
-                marginBottom: '16px',
-                color: '#dc2626',
-                fontSize: '14px'
-              }}>
-                {error}
-              </div>
-            )}
-            
-            <div style={{ marginBottom: '24px' }}>
-              <input
-                type="text"
-                value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                placeholder="XXXXXX"
-                maxLength={6}
-                style={{
-                  width: '100%',
-                  padding: '20px 16px',
-                  border: '2px solid var(--border-color)',
-                  borderRadius: '12px',
-                  fontSize: '28px',
-                  fontWeight: '700',
-                  letterSpacing: '8px',
-                  textAlign: 'center',
-                  outline: 'none',
-                  background: 'var(--input-bg)',
-                  color: 'var(--text-primary)',
-                  boxSizing: 'border-box'
-                }}
-              />
+            {/* gradient band with the key badge */}
+            <div style={{ position: 'relative', height: 92, background: 'var(--header-bg)' }}>
+              <span aria-hidden="true" style={{ position: 'absolute', width: 220, height: 220, right: -60, top: -120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.18), rgba(255,255,255,0) 70%)' }} />
+              <div aria-hidden="true" style={{
+                position: 'absolute', left: isMobile ? 20 : 32, bottom: -28, width: 60, height: 60, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28,
+                background: 'var(--bg-card)', border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(16,24,40,0.12)'
+              }}>🔑</div>
             </div>
-            
-            <button
-              onClick={handleJoinRoom}
-              disabled={isJoining || roomCode.length < 6}
-              style={{
-                width: '100%',
-                padding: '16px',
-                background: (isJoining || roomCode.length < 6) ? '#9ca3af' : '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: (isJoining || roomCode.length < 6) ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {isJoining ? 'Joining...' : 'Join Room'}
-            </button>
+            <div style={{ padding: isMobile ? '40px 20px 24px' : '44px 32px 32px' }}>
+              <h2 style={{ margin: '0 0 6px', fontSize: isMobile ? '20px' : '22px', fontWeight: 750, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>Enter Room Code</h2>
+              <p style={{ margin: '0 0 22px', color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.5 }}>
+                Ask your teacher for the 6-character code to join their room.
+              </p>
+
+              {error && (
+                <div role="alert" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', color: '#dc2626', fontSize: '14px', lineHeight: 1.4 }}>
+                  {error}
+                </div>
+              )}
+
+              <div data-tour="join-code" style={{ marginBottom: '18px' }}>
+                <input
+                  type="text"
+                  className="app-input"
+                  value={roomCode}
+                  onChange={(e) => setRoomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  onKeyDown={(e) => e.key === 'Enter' && !isDisabled && handleJoinRoom()}
+                  placeholder="XXXXXX"
+                  aria-label="Room code"
+                  autoComplete="off"
+                  maxLength={6}
+                  style={inputStyle({
+                    padding: isMobile ? '16px 12px' : '20px 16px', borderWidth: 2, borderRadius: 16,
+                    fontSize: isMobile ? '26px' : '32px', fontWeight: 800, letterSpacing: isMobile ? '8px' : '12px', textAlign: 'center',
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    borderColor: isFocused ? 'var(--accent)' : 'var(--border-color)'
+                  })}
+                />
+                <div aria-hidden="true" style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+                  {Array.from({ length: 6 }, (_, i) => (
+                    <span key={i} style={{ width: 22, height: 4, borderRadius: 4, background: i < roomCode.length ? 'var(--accent)' : 'var(--border-color)', transition: 'background .15s ease' }} />
+                  ))}
+                </div>
+              </div>
+
+              <button data-tour="join-button" onClick={handleJoinRoom} disabled={isDisabled} style={primaryButton(isDisabled, { width: '100%', padding: '14px 18px', fontSize: '16px', borderRadius: 14 })}>
+                {isJoining ? 'Joining…' : 'Join Room →'}
+              </button>
+              <p style={{ margin: '14px 0 0', fontSize: 12.5, color: 'var(--text-secondary)', textAlign: 'center' }}>
+                Tip: keep this tab open during the class. Questions pop up here as your teacher launches them.
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react'
+import QuestionEditor from './QuestionEditor'
 
-function TextQuestionApprovalPopup({ 
-  questions, 
-  onApprove, 
-  onReject, 
-  onClose, 
+function TextQuestionApprovalPopup({
+  questions,
+  onApprove,
+  onReject,
+  onClose,
   onNext,
-  isLast 
+  isLast
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [pendingQuestions, setPendingQuestions] = useState(questions || [])
   const [timeLeft, setTimeLeft] = useState(30)
   const [isTimerActive, setIsTimerActive] = useState(false)
   const [launchedQuestionIndex, setLaunchedQuestionIndex] = useState(-1)
+  const [isEditing, setIsEditing] = useState(false)
   const timerRef = useRef(null)
   const defaultTimeToAnswer = 30
 
@@ -20,6 +22,13 @@ function TextQuestionApprovalPopup({
     setPendingQuestions(questions || [])
     setCurrentIndex(0)
   }, [questions])
+
+  // Leave edit mode whenever we move to a different question.
+  useEffect(() => { setIsEditing(false) }, [currentIndex])
+
+  // Persist an edited question back into local state so Approve/Launch sends the edited version.
+  const updateCurrent = (updated) =>
+    setPendingQuestions(prev => prev.map((q, i) => (i === currentIndex ? updated : q)))
 
   const currentQuestion = pendingQuestions[currentIndex]
 
@@ -146,7 +155,7 @@ function TextQuestionApprovalPopup({
             style={{
               marginTop: '16px',
               padding: '10px 24px',
-              background: '#3b82f6',
+              background: 'var(--accent-solid)',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -235,20 +244,40 @@ function TextQuestionApprovalPopup({
                 )}
               </div>
             )}
+            {!isQuestionLaunched && (
+              <button
+                onClick={() => setIsEditing(e => !e)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '20px',
+                  border: `1px solid ${isEditing ? '#10b981' : 'var(--border-color)'}`,
+                  background: isEditing ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
+                  color: isEditing ? '#10b981' : 'var(--text-secondary)',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                {isEditing ? '✓ Done' : '✏️ Edit'}
+              </button>
+            )}
             <span style={{
               padding: '6px 12px',
-              background: 'rgba(59, 130, 246, 0.1)',
+              background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
               borderRadius: '20px',
               fontSize: '13px',
               fontWeight: '600',
-              color: '#3b82f6'
+              color: 'var(--accent)'
             }}>
               {currentIndex + 1} / {pendingQuestions.length}
             </span>
           </div>
         </div>
 
-        {/* Question Card */}
+        {/* Question Card — editable when the teacher taps Edit, read-only otherwise */}
+        {isEditing ? (
+          <QuestionEditor question={currentQuestion} onChange={updateCurrent} />
+        ) : (
         <div style={{
           background: 'var(--bg-primary)',
           borderRadius: '16px',
@@ -264,12 +293,12 @@ function TextQuestionApprovalPopup({
               fontSize: '11px',
               fontWeight: '600',
               background: currentQuestion.type === 'MCQ' 
-                ? 'rgba(59, 130, 246, 0.15)' 
+                ? 'color-mix(in srgb, var(--accent) 15%, transparent)' 
                 : currentQuestion.type === 'TF'
                   ? 'rgba(16, 185, 129, 0.15)'
                   : 'rgba(139, 92, 246, 0.15)',
               color: currentQuestion.type === 'MCQ' 
-                ? '#3b82f6' 
+                ? 'var(--accent)' 
                 : currentQuestion.type === 'TF'
                   ? '#10b981'
                   : '#8b5cf6'
@@ -366,6 +395,7 @@ function TextQuestionApprovalPopup({
             })}
           </div>
         </div>
+        )}
 
         {/* Action Buttons */}
         {isQuestionLaunched ? (
@@ -377,7 +407,7 @@ function TextQuestionApprovalPopup({
               padding: '14px',
               borderRadius: '12px',
               border: 'none',
-              background: 'linear-gradient(135deg, #3b82f6, #1e40af)',
+              background: 'var(--accent-gradient)',
               color: 'white',
               fontSize: '14px',
               fontWeight: '600',
